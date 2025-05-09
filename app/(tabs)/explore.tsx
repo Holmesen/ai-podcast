@@ -1,110 +1,175 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { SearchBar } from '../../components/SearchBar';
+import { colors } from '../../components/theme';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  count: number;
+}
 
-export default function TabTwoScreen() {
+export default function Explore() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 分类数据
+  const categories: Category[] = [
+    { id: '1', name: '科技', icon: 'laptop-outline', count: 25 },
+    { id: '2', name: '艺术', icon: 'color-palette-outline', count: 18 },
+    { id: '3', name: '商业', icon: 'briefcase-outline', count: 30 },
+    { id: '4', name: '健康', icon: 'fitness-outline', count: 22 },
+    { id: '5', name: '教育', icon: 'school-outline', count: 15 },
+    { id: '6', name: '娱乐', icon: 'film-outline', count: 28 },
+    { id: '7', name: '美食', icon: 'restaurant-outline', count: 20 },
+    { id: '8', name: '旅行', icon: 'airplane-outline', count: 16 },
+    { id: '9', name: '体育', icon: 'football-outline', count: 12 },
+    { id: '10', name: '文学', icon: 'book-outline', count: 14 },
+    { id: '11', name: '历史', icon: 'time-outline', count: 10 },
+    { id: '12', name: '心理', icon: 'heart-outline', count: 19 },
+  ];
+
+  const renderCategoryItem = ({ item }: { item: Category }) => (
+    <TouchableOpacity style={styles.categoryItem} onPress={() => {}}>
+      <View style={styles.categoryIcon}>
+        <Ionicons name={item.icon as any} size={28} color={colors.primary} />
+      </View>
+      <Text style={styles.categoryName}>{item.name}</Text>
+      <Text style={styles.categoryCount}>{item.count}+ 话题</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>探索话题</Text>
+        <TouchableOpacity style={styles.headerButton}>
+          <Ionicons name="options-outline" size={24} color={colors.neutral700} />
+        </TouchableOpacity>
+      </View>
+
+      <SearchBar placeholder="搜索话题或关键词" value={searchQuery} onChangeText={setSearchQuery} />
+
+      <View style={styles.trendingSection}>
+        <Text style={styles.sectionTitle}>热门话题</Text>
+        <View style={styles.trendingTags}>
+          <TouchableOpacity style={styles.trendingTag}>
+            <Text style={styles.trendingTagText}>#AI技术</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.trendingTag}>
+            <Text style={styles.trendingTagText}>#心理健康</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.trendingTag}>
+            <Text style={styles.trendingTagText}>#职场成长</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.trendingTag}>
+            <Text style={styles.trendingTagText}>#创意思维</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.trendingTag}>
+            <Text style={styles.trendingTagText}>#生活方式</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>所有分类</Text>
+
+      <FlatList
+        data={categories}
+        renderItem={renderCategoryItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={styles.categoriesContainer}
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeAreaView>
   );
 }
 
+const shadow = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 3,
+  elevation: 2,
+};
+
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
-  titleContainer: {
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  headerButton: {
+    padding: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  trendingSection: {
+    marginTop: 8,
+  },
+  trendingTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
     gap: 8,
+  },
+  trendingTag: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  trendingTagText: {
+    color: colors.primary,
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  categoriesContainer: {
+    padding: 8,
+    paddingBottom: 120, // 为底部TabBar留出空间
+  },
+  categoryItem: {
+    flex: 1,
+    backgroundColor: 'white',
+    margin: 8,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    ...shadow,
+  },
+  categoryIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  categoryCount: {
+    fontSize: 13,
+    color: colors.neutral500,
   },
 });

@@ -1,50 +1,168 @@
-# Welcome to your Expo app 👋
+# AI 播客应用
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+AI 播客采访应用是一款创新型交互式内容生成工具，它能让用户与 AI 主持人进行对话，创建专业质量的播客内容。用户可以选择感兴趣的话题，与 AI 进行深度对话，系统会自动生成结构化的播客内容摘要。
 
-## Get started
+## 项目特点
 
-1. Install dependencies
+- 使用 Expo Router 进行应用导航
+- 基于 React Native 构建的跨平台移动应用
+- 可与 AI 进行实时对话并录制播客
+- 支持话题浏览和选择
+- 个人资料管理和播客历史记录
+- 中文用户界面
 
-   ```bash
-   npm install
-   ```
+## 应用结构
 
-2. Start the app
+### 主要页面
 
-   ```bash
-   npx expo start
-   ```
+- **首页**: 显示推荐话题和近期播客
+- **录制页**: 与 AI 主持人进行对话并录制
+- **探索页**: 浏览各种话题和类别
+- **个人资料**: 用户信息和录制的播客列表
+- **话题选择**: 选择播客的对话主题
+- **播客详情**: 查看单个播客的详细信息
 
-In the output, you'll find options to open the app in a
+### 组件结构
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **StatusBar**: 自定义状态栏组件
+- **TabBar**: 底部导航栏
+- **SearchBar**: 搜索输入框
+- **TopicCard**: 话题卡片展示
+- **PodcastCard**: 播客卡片展示
+- **QuickAction**: 快速操作按钮
+- **ChatMessage**: 对话消息组件
+- **ThinkingIndicator**: AI 思考指示器
+- **RecordControls**: 录音控制组件
+- **TopicSelectionItem**: 话题选择项目
+- **CustomTopicButton**: 自定义话题按钮
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 开发技术
 
-## Get a fresh project
+- React Native
+- Expo
+- Expo Router
+- React Native Safe Area Context
+- Expo Vector Icons
 
-When you're ready, run:
+## 如何运行
 
-```bash
-npm run reset-project
-```
+1. 确保已安装 Node.js 和 npm/yarn
+2. 安装 Expo CLI: `npm install -g expo-cli`
+3. 克隆此仓库
+4. 运行 `npm install` 或 `yarn` 安装依赖
+5. 运行 `expo start` 启动开发服务器
+6. 使用 Expo Go 应用扫描二维码运行应用
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 未来改进计划
 
-## Learn more
+- 集成实际的 AI 对话功能
+- 添加用户认证
+- 支持播客分享功能
+- 添加更多个性化选项
+- 实现播客音频的导出和分享
 
-To learn more about developing your project with Expo, look at the following resources:
+## AI 播客采访应用的 MVP 核心组件
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 核心页面
 
-## Join the community
+1. **用户引导与登录**
 
-Join our community of developers creating universal apps.
+   - **引导页**：向新用户介绍产品功能和价值主张
+   - **登录/注册页**：允许用户创建账户或登录
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+2. **内容发现**
+
+   - **首页**：展示推荐内容和最近录制的播客
+   - **探索页**：允许用户发现新话题和热门内容
+
+3. **播客录制流程**
+
+   - **话题选择页**：让用户选择感兴趣的播客话题
+   - **主持人选择页**：允许用户选择不同风格的 AI 主持人
+   - **录制/对话页**：录制播客的核心界面，提供语音和文字两种交互方式
+   - **内容总结页**：自动生成播客内容的结构化总结
+
+4. **内容管理与分享**
+   - **播客详情页**：展示完成的播客，提供播放和交互功能
+   - **分享页**：允许用户分享播客到社交媒体或通过链接分享
+   - **个人中心**：管理用户录制的播客和个人设置
+
+### 核心功能
+
+1. **用户认证**
+
+   - 注册/登录功能
+   - 社交媒体账号登录
+
+2. **AI 对话能力**
+
+   - 基于选定话题的智能问答
+   - 不同风格 AI 主持人的对话能力
+   - 自然流畅的对话体验
+
+3. **内容生成**
+
+   - 实时语音转文字
+   - 自动生成内容总结和章节划分
+   - 关键点和引用提取
+
+4. **内容管理**
+
+   - 播客收藏和历史记录
+   - 播放控制（播放/暂停/快进/速率调整）
+   - 内容编辑和管理
+
+5. **分享与社交**
+   - 社交媒体分享功能
+   - 生成分享链接
+   - 播客公开/私密设置
+
+### MVP 优先级建议
+
+从构建 MVP 的角度，建议按以下优先级实现功能：
+
+**第一阶段（核心功能）：**
+
+1. 话题选择 → 录制对话 → 内容总结的基本流程
+2. 简单的用户账户系统
+3. 播客详情与播放功能
+4. 个人内容管理
+
+**第二阶段（体验增强）：**
+
+1. AI 主持人风格选择
+2. 内容分享功能
+3. 探索和发现功能
+4. 高级内容编辑
+
+**第三阶段（生态扩展）：**
+
+1. 社区功能和用户互动
+2. 高级 AI 个性化定制
+3. 内容推荐系统完善
+4. 多平台整合
+
+### 技术实现关键点
+
+1. **后端服务**：
+
+   - 语音识别和转文字 API 集成
+   - AI 大语言模型接口（用于主持人对话）
+   - 内容摘要和结构化生成算法
+
+2. **前端体验**：
+
+   - 流畅的录音和播放功能
+   - 实时语音交互界面
+   - 响应式设计，确保在移动端体验良好
+
+3. **数据存储**：
+   - 用户数据管理
+   - 音频和文本内容存储
+   - 内容索引和检索
+
+## 参考文档
+
+- [AI SDK](https://ai-sdk.dev/docs)
+- [DeepSeek Provider](https://ai-sdk.dev/providers/ai-sdk-providers/deepseek)
+- [Expo 快速入门](https://ai-sdk.dev/docs/getting-started/expo)
