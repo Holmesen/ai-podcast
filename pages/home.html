@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 首页</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      .header {
+        padding: 1rem 0;
+        margin-bottom: 1.5rem;
+      }
+
+      .header-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .header-subtitle {
+        color: var(--neutral-600);
+        font-size: 1rem;
+      }
+
+      .quick-action {
+        background-color: var(--primary-color);
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+      }
+
+      .quick-action-content {
+        flex: 1;
+      }
+
+      .quick-action-title {
+        color: white;
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .quick-action-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+      }
+
+      .quick-action-button {
+        display: inline-flex;
+        align-items: center;
+        background-color: white;
+        color: var(--primary-color);
+        border-radius: var(--border-radius-md);
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .quick-action-button i {
+        margin-left: 0.5rem;
+      }
+
+      .quick-action-icon {
+        background-color: rgba(255, 255, 255, 0.2);
+        width: 60px;
+        height: 60px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+      }
+
+      .quick-action-icon i {
+        color: white;
+        font-size: 1.5rem;
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .section-title-link {
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-decoration: none;
+      }
+
+      .horizontal-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+        scrollbar-width: none; /* Firefox */
+      }
+
+      .horizontal-scroll::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Edge */
+      }
+
+      .topic-card {
+        min-width: 140px;
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        transition: transform 0.2s;
+      }
+
+      .topic-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .topic-card-img {
+        height: 100px;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .topic-card-content {
+        padding: 0.75rem;
+      }
+
+      .topic-card-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .topic-card-episodes {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .podcast-card {
+        display: flex;
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .podcast-card-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+      }
+
+      .podcast-card-content {
+        flex: 1;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .podcast-card-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .podcast-card-host {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+        margin-bottom: 0.5rem;
+      }
+
+      .podcast-card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--neutral-600);
+        font-size: 0.8rem;
+      }
+
+      .podcast-card-play {
+        color: var(--primary-color);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span>9:41</span>
+        </div>
+        <div class="status-bar-center">
+          <!-- Dynamic notch space -->
+        </div>
+        <div class="status-bar-right">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="header">
+          <h1 class="header-title">你好，李明</h1>
+          <p class="header-subtitle">今天想聊些什么？</p>
+        </div>
+
+        <div class="ios-search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="搜索话题、内容或播客" />
+        </div>
+
+        <div class="quick-action">
+          <div class="quick-action-icon">
+            <i class="fa-solid fa-microphone-lines"></i>
+          </div>
+          <div class="quick-action-content">
+            <h3 class="quick-action-title">开始新播客</h3>
+            <p class="quick-action-subtitle">记录你的独特见解和思考</p>
+            <a href="topic_selection.html" class="quick-action-button">
+              立即开始 <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <span>推荐话题</span>
+            <a href="explore.html" class="section-title-link">查看全部</a>
+          </div>
+
+          <div class="horizontal-scroll">
+            <div class="topic-card">
+              <img
+                src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                class="topic-card-img"
+                alt="科技前沿"
+              />
+              <div class="topic-card-content">
+                <div class="topic-card-title">科技前沿</div>
+                <div class="topic-card-episodes">25+ 话题</div>
+              </div>
+            </div>
+
+            <div class="topic-card">
+              <img
+                src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                class="topic-card-img"
+                alt="心理健康"
+              />
+              <div class="topic-card-content">
+                <div class="topic-card-title">心理健康</div>
+                <div class="topic-card-episodes">18+ 话题</div>
+              </div>
+            </div>
+
+            <div class="topic-card">
+              <img
+                src="https://images.unsplash.com/photo-1507668077129-56e32842fceb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80"
+                class="topic-card-img"
+                alt="创意写作"
+              />
+              <div class="topic-card-content">
+                <div class="topic-card-title">创意写作</div>
+                <div class="topic-card-episodes">12+ 话题</div>
+              </div>
+            </div>
+
+            <div class="topic-card">
+              <img
+                src="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1474&q=80"
+                class="topic-card-img"
+                alt="职业发展"
+              />
+              <div class="topic-card-content">
+                <div class="topic-card-title">职业发展</div>
+                <div class="topic-card-episodes">20+ 话题</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <span>近期播客</span>
+            <a href="#" class="section-title-link">查看全部</a>
+          </div>
+
+          <div class="podcast-card">
+            <img
+              src="https://images.unsplash.com/photo-1589903308904-1010c2294adc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="podcast-card-img"
+              alt="AI 与未来工作"
+            />
+            <div class="podcast-card-content">
+              <div>
+                <div class="podcast-card-title">AI 与未来工作</div>
+                <div class="podcast-card-host">你与 AI 主持人 Sarah</div>
+              </div>
+              <div class="podcast-card-meta">
+                <span>25分钟 · 昨天</span>
+                <span class="podcast-card-play"><i class="fa-solid fa-play"></i> 继续收听</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="podcast-card">
+            <img
+              src="https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="podcast-card-img"
+              alt="高效学习策略"
+            />
+            <div class="podcast-card-content">
+              <div>
+                <div class="podcast-card-title">高效学习策略</div>
+                <div class="podcast-card-host">你与 AI 主持人 Michael</div>
+              </div>
+              <div class="podcast-card-meta">
+                <span>18分钟 · 3天前</span>
+                <span class="podcast-card-play"><i class="fa-solid fa-play"></i> 继续收听</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="podcast-card">
+            <img
+              src="https://images.unsplash.com/photo-1516534775068-ba3e7458af70?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="podcast-card-img"
+              alt="心灵成长之旅"
+            />
+            <div class="podcast-card-content">
+              <div>
+                <div class="podcast-card-title">心灵成长之旅</div>
+                <div class="podcast-card-host">你与 AI 主持人 Emma</div>
+              </div>
+              <div class="podcast-card-meta">
+                <span>32分钟 · 上周</span>
+                <span class="podcast-card-play"><i class="fa-solid fa-play"></i> 继续收听</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <a href="home.html" class="tab-bar-item active" id="tab-home">
+          <div class="tab-bar-icon"><i class="fa-solid fa-house"></i></div>
+          <div class="tab-bar-text">首页</div>
+        </a>
+        <a href="explore.html" class="tab-bar-item" id="tab-explore">
+          <div class="tab-bar-icon"><i class="fa-solid fa-compass"></i></div>
+          <div class="tab-bar-text">探索</div>
+        </a>
+        <a href="record.html" class="tab-bar-item" id="tab-record">
+          <div class="tab-bar-icon"><i class="fa-solid fa-microphone"></i></div>
+          <div class="tab-bar-text">录制</div>
+        </a>
+        <a href="profile.html" class="tab-bar-item" id="tab-profile">
+          <div class="tab-bar-icon"><i class="fa-solid fa-user"></i></div>
+          <div class="tab-bar-text">我的</div>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      // Update status bar time
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        document.querySelector('.status-bar-left span').textContent = `${hours}:${minutes}`;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000); // Update time every minute
+    </script>
+  </body>
+</html>

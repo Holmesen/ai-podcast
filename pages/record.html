@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 录制</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      .nav-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        margin-bottom: 1.5rem;
+      }
+
+      .nav-back {
+        font-size: 1.25rem;
+        color: var(--neutral-700);
+      }
+
+      .page-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .topic-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .topic-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background-color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+      }
+
+      .topic-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .topic-desc {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .podcast-info {
+        background-color: var(--neutral-100);
+        border-radius: var(--border-radius-lg);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .podcast-info-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .podcast-info-desc {
+        font-size: 0.9rem;
+        color: var(--neutral-600);
+        line-height: 1.4;
+      }
+
+      .chat-container {
+        margin-bottom: 5rem;
+      }
+
+      .message {
+        display: flex;
+        margin-bottom: 1.5rem;
+      }
+
+      .message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        margin-right: 1rem;
+        flex-shrink: 0;
+      }
+
+      .ai-avatar {
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      .user-avatar {
+        background-color: var(--secondary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      .message-content {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border-radius: 1.5rem;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        max-width: 80%;
+      }
+
+      .message-ai .message-content {
+        background-color: var(--neutral-100);
+        border-bottom-left-radius: 0.25rem;
+      }
+
+      .message-user {
+        flex-direction: row-reverse;
+      }
+
+      .message-user .message-avatar {
+        margin-right: 0;
+        margin-left: 1rem;
+      }
+
+      .message-user .message-content {
+        background-color: var(--primary-color);
+        color: white;
+        border-bottom-right-radius: 0.25rem;
+      }
+
+      .message-thinking {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 1.2rem;
+        color: var(--neutral-500);
+      }
+
+      .thinking-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--neutral-400);
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+      }
+
+      .thinking-dot:nth-child(2) {
+        animation-delay: 0.3s;
+      }
+
+      .thinking-dot:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.4;
+          transform: scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        100% {
+          opacity: 0.4;
+          transform: scale(0.8);
+        }
+      }
+
+      .record-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        padding: 1rem;
+        border-top: 1px solid var(--neutral-200);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        z-index: 100;
+      }
+
+      .mic-button {
+        width: 56px;
+        height: 56px;
+        border-radius: 28px;
+        background-color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        box-shadow: var(--shadow-md);
+      }
+
+      .mic-button.recording {
+        animation: pulse-red 1.5s infinite;
+      }
+
+      @keyframes pulse-red {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+
+      .input-actions {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        color: var(--neutral-500);
+        font-size: 0.9rem;
+      }
+
+      .input-actions.recording {
+        color: var(--error-color);
+      }
+
+      .record-status {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+      }
+
+      .record-help {
+        font-size: 0.8rem;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .action-button {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background-color: var(--neutral-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neutral-700);
+        font-size: 1.2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span>9:41</span>
+        </div>
+        <div class="status-bar-center">
+          <!-- Dynamic notch space -->
+        </div>
+        <div class="status-bar-right">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="content-area" style="padding-bottom: 80px">
+        <div class="nav-header">
+          <a href="topic_selection.html" class="nav-back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </a>
+          <h1 class="page-title">AI 播客采访</h1>
+          <a href="summary.html" class="nav-button">
+            <i class="fa-solid fa-list-check"></i>
+          </a>
+        </div>
+
+        <div class="topic-header">
+          <div class="topic-icon">
+            <i class="fa-solid fa-lightbulb"></i>
+          </div>
+          <div class="topic-info">
+            <div class="topic-title">创意思维方法</div>
+            <div class="topic-desc">突破思维局限，激发创造力的实用技巧</div>
+          </div>
+        </div>
+
+        <div class="podcast-info">
+          <div class="podcast-info-title">关于本次对话</div>
+          <div class="podcast-info-desc">
+            在本次播客中，我们将探讨创意思维的实用方法，包括如何突破常规思维、培养创新习惯、应对创意瓶颈等话题。随时按下麦克风，分享你的想法和经验。
+          </div>
+        </div>
+
+        <div class="chat-container">
+          <div class="message message-ai">
+            <div class="message-avatar ai-avatar">
+              <i class="fa-solid fa-microphone"></i>
+            </div>
+            <div class="message-content">
+              嗨，欢迎来到我们的播客！今天我们要聊聊创意思维方法。无论是工作还是生活中，创造力都是一项宝贵的能力。你平时是如何激发自己的创意的呢？
+            </div>
+          </div>
+
+          <div class="message message-user">
+            <div class="message-avatar user-avatar">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="message-content">我经常通过阅读不同领域的书籍来获取灵感，觉得跨领域的思维碰撞很有帮助。</div>
+          </div>
+
+          <div class="message message-ai">
+            <div class="message-avatar ai-avatar">
+              <i class="fa-solid fa-microphone"></i>
+            </div>
+            <div class="message-content">
+              跨领域学习确实是激发创意的好方法！许多创新都来自于将不同领域的知识连接起来。你能举个例子说明这种跨领域思维如何帮助你解决了一个具体问题吗？
+            </div>
+          </div>
+
+          <div class="message-thinking">
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+          </div>
+        </div>
+
+        <div class="record-footer">
+          <div class="input-actions">
+            <div class="record-status">点击麦克风开始录音</div>
+            <div class="record-help">AI 主持人正在等待你的回应...</div>
+          </div>
+
+          <button class="mic-button">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+
+          <div class="action-buttons">
+            <button class="action-button">
+              <i class="fa-solid fa-ellipsis"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Update status bar time
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        document.querySelector('.status-bar-left span').textContent = `${hours}:${minutes}`;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000); // Update time every minute
+
+      // Mic button function
+      const micButton = document.querySelector('.mic-button');
+      const inputActions = document.querySelector('.input-actions');
+      const recordStatus = document.querySelector('.record-status');
+      const recordHelp = document.querySelector('.record-help');
+
+      let isRecording = false;
+
+      micButton.addEventListener('click', function () {
+        isRecording = !isRecording;
+
+        if (isRecording) {
+          micButton.classList.add('recording');
+          inputActions.classList.add('recording');
+          recordStatus.textContent = '正在录音...';
+          recordHelp.textContent = '点击停止录音';
+        } else {
+          micButton.classList.remove('recording');
+          inputActions.classList.remove('recording');
+          recordStatus.textContent = '点击麦克风开始录音';
+          recordHelp.textContent = 'AI 主持人正在等待你的回应...';
+
+          // Simulate sending the message
+          setTimeout(function () {
+            document.querySelector('.message-thinking').style.display = 'none';
+
+            const chatContainer = document.querySelector('.chat-container');
+
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message message-user';
+            userMessage.innerHTML = `
+            <div class="message-avatar user-avatar">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="message-content">
+              我曾经在设计一个产品时借鉴了生物学中的自组织系统概念，让产品更具适应性和可扩展性。这种跨领域思考帮助我们解决了产品架构的问题。
+            </div>
+          `;
+            chatContainer.appendChild(userMessage);
+
+            // Simulate AI thinking
+            const thinking = document.createElement('div');
+            thinking.className = 'message-thinking';
+            thinking.innerHTML = `
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+          `;
+            chatContainer.appendChild(thinking);
+
+            // After some time, show AI response
+            setTimeout(function () {
+              thinking.style.display = 'none';
+
+              const aiMessage = document.createElement('div');
+              aiMessage.className = 'message message-ai';
+              aiMessage.innerHTML = `
+              <div class="message-avatar ai-avatar">
+                <i class="fa-solid fa-microphone"></i>
+              </div>
+              <div class="message-content">
+                这是个很棒的例子！将生物学原理应用到产品设计中确实很有创意。仿生学就是这样一个将自然界的解决方案应用到人类问题上的学科。你觉得在培养创意思维的过程中，环境因素有多重要？比如工作环境、团队氛围等。
+              </div>
+            `;
+              chatContainer.appendChild(aiMessage);
+
+              // Scroll to bottom
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+
+              // Add new thinking dots for next response
+              const newThinking = document.createElement('div');
+              newThinking.className = 'message-thinking';
+              newThinking.innerHTML = `
+              <div class="thinking-dot"></div>
+              <div class="thinking-dot"></div>
+              <div class="thinking-dot"></div>
+            `;
+              chatContainer.appendChild(newThinking);
+
+              // Scroll to bottom
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 2000);
+
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }, 1000);
+        }
+      });
+    </script>
+  </body>
+</html>

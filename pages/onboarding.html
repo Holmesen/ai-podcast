@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 引导页</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      body {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-light);
+        margin: 0;
+        padding: 0;
+      }
+
+      .onboarding-container {
+        height: 100%;
+        width: 100%;
+        position: relative;
+      }
+
+      .onboarding-slide {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+      }
+
+      .onboarding-slide.active {
+        opacity: 1;
+        z-index: 1;
+      }
+
+      .onboarding-slide img {
+        width: 80%;
+        max-width: 300px;
+        margin-bottom: 2rem;
+        border-radius: 20px;
+      }
+
+      .onboarding-slide h1 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-size: 1.8rem;
+      }
+
+      .onboarding-slide p {
+        color: var(--neutral-600);
+        margin-bottom: 2rem;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .dots-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--neutral-300);
+        border-radius: 50%;
+        margin: 0 5px;
+        transition: background-color 0.3s ease;
+      }
+
+      .dot.active {
+        background-color: var(--primary-color);
+        width: 20px;
+        border-radius: 10px;
+      }
+
+      .onboarding-buttons {
+        position: absolute;
+        bottom: 50px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        padding: 0 2rem;
+        z-index: 10;
+      }
+
+      .btn-skip {
+        position: absolute;
+        top: 40px;
+        right: 20px;
+        background: transparent;
+        color: var(--neutral-600);
+        border: none;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        cursor: pointer;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <div class="onboarding-container">
+        <button class="btn-skip" onclick="window.location.href='login.html'">跳过</button>
+
+        <div class="onboarding-slide active">
+          <img
+            src="https://images.unsplash.com/photo-1589903308904-1010c2294adc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+            alt="播客对话"
+          />
+          <h1>探索思想的对话</h1>
+          <p>通过 AI 驱动的智能对话，深入探讨你感兴趣的任何话题</p>
+        </div>
+
+        <div class="onboarding-slide">
+          <img
+            src="https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+            alt="AI 引导"
+          />
+          <h1>AI 智能引导</h1>
+          <p>AI 系统提出精准问题，引导你进行深度思考，挖掘独特见解</p>
+        </div>
+
+        <div class="onboarding-slide">
+          <img
+            src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+            alt="内容总结"
+          />
+          <h1>智能内容总结</h1>
+          <p>自动生成结构化的对话摘要，轻松沉淀知识，分享你的思想</p>
+        </div>
+
+        <div class="dots-container">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+
+        <div class="onboarding-buttons">
+          <button class="btn btn-primary btn-lg" id="btn-next" style="width: 80%">继续</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentSlide = 0;
+      const slides = document.querySelectorAll('.onboarding-slide');
+      const dots = document.querySelectorAll('.dot');
+      const nextBtn = document.getElementById('btn-next');
+
+      function showSlide(index) {
+        slides.forEach((slide) => slide.classList.remove('active'));
+        dots.forEach((dot) => dot.classList.remove('active'));
+
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+
+        if (index === slides.length - 1) {
+          nextBtn.textContent = '开始使用';
+        } else {
+          nextBtn.textContent = '继续';
+        }
+      }
+
+      nextBtn.addEventListener('click', () => {
+        if (currentSlide < slides.length - 1) {
+          currentSlide++;
+          showSlide(currentSlide);
+        } else {
+          window.location.href = 'login.html';
+        }
+      });
+
+      // Enable dot navigation
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          currentSlide = index;
+          showSlide(currentSlide);
+        });
+      });
+
+      // Enable swipe navigation
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      });
+
+      document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      });
+
+      function handleSwipe() {
+        if (touchEndX < touchStartX - 50) {
+          // Swipe left
+          if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            showSlide(currentSlide);
+          }
+        }
+
+        if (touchEndX > touchStartX + 50) {
+          // Swipe right
+          if (currentSlide > 0) {
+            currentSlide--;
+            showSlide(currentSlide);
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 探索</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .categories-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 0.5rem;
+        padding: 0.5rem 0;
+        margin-bottom: 1.5rem;
+        scrollbar-width: none; /* Firefox */
+      }
+
+      .categories-scroll::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Edge */
+      }
+
+      .category-pill {
+        padding: 0.5rem 1rem;
+        background-color: var(--neutral-100);
+        border-radius: 9999px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        transition: all 0.2s;
+      }
+
+      .category-pill.active {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .featured-card {
+        position: relative;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        height: 200px;
+        box-shadow: var(--shadow-md);
+      }
+
+      .featured-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .featured-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.7));
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1.5rem;
+        color: white;
+      }
+
+      .featured-tag {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .featured-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .featured-subtitle {
+        font-size: 0.9rem;
+        opacity: 0.9;
+      }
+
+      .topic-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .topic-item {
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .topic-item-img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+      }
+
+      .topic-item-content {
+        padding: 0.75rem;
+      }
+
+      .topic-item-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .topic-item-count {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .trending-section {
+        margin-top: 2rem;
+      }
+
+      .trending-item {
+        display: flex;
+        padding: 1rem;
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-sm);
+        align-items: center;
+      }
+
+      .trending-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--neutral-300);
+        margin-right: 1rem;
+        width: 30px;
+        text-align: center;
+      }
+
+      .trending-content {
+        flex: 1;
+      }
+
+      .trending-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      .trending-meta {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .trending-actions {
+        display: flex;
+        gap: 1rem;
+        color: var(--neutral-600);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span>9:41</span>
+        </div>
+        <div class="status-bar-center">
+          <!-- Dynamic notch space -->
+        </div>
+        <div class="status-bar-right">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="page-header">
+          <h1 class="page-title">探索</h1>
+          <div>
+            <i class="fa-solid fa-bell" style="font-size: 1.2rem; color: var(--neutral-700)"></i>
+          </div>
+        </div>
+
+        <div class="ios-search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="搜索话题或内容" />
+        </div>
+
+        <div class="categories-scroll">
+          <div class="category-pill active">全部</div>
+          <div class="category-pill">科技</div>
+          <div class="category-pill">文化</div>
+          <div class="category-pill">心理</div>
+          <div class="category-pill">职场</div>
+          <div class="category-pill">教育</div>
+          <div class="category-pill">健康</div>
+          <div class="category-pill">社会</div>
+          <div class="category-pill">创意</div>
+        </div>
+
+        <div class="featured-card">
+          <img
+            src="https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+            class="featured-img"
+            alt="AI 变革"
+          />
+          <div class="featured-overlay">
+            <div class="featured-tag">精选主题</div>
+            <h2 class="featured-title">人工智能的社会变革</h2>
+            <p class="featured-subtitle">探讨 AI 如何重塑我们的工作、生活与社会结构</p>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <span>热门话题</span>
+        </div>
+
+        <div class="topic-grid">
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="topic-item-img"
+              alt="元宇宙探索"
+            />
+            <div class="topic-item-content">
+              <div class="topic-item-title">元宇宙探索</div>
+              <div class="topic-item-count">15+ 对话</div>
+            </div>
+          </div>
+
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1412&q=80"
+              class="topic-item-img"
+              alt="创意思维"
+            />
+            <div class="topic-item-content">
+              <div class="topic-item-title">创意思维</div>
+              <div class="topic-item-count">12+ 对话</div>
+            </div>
+          </div>
+
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="topic-item-img"
+              alt="职业发展"
+            />
+            <div class="topic-item-content">
+              <div class="topic-item-title">职业发展</div>
+              <div class="topic-item-count">20+ 对话</div>
+            </div>
+          </div>
+
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1513001900722-370f803f498d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+              class="topic-item-img"
+              alt="心理健康"
+            />
+            <div class="topic-item-content">
+              <div class="topic-item-title">心理健康</div>
+              <div class="topic-item-count">18+ 对话</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="trending-section">
+          <div class="section-title">
+            <span>热门播客</span>
+          </div>
+
+          <div class="trending-item">
+            <div class="trending-number">1</div>
+            <div class="trending-content">
+              <div class="trending-title">数字游民：未来工作的新范式</div>
+              <div class="trending-meta">32K 收听 · 450 评论</div>
+            </div>
+            <div class="trending-actions">
+              <i class="fa-solid fa-play"></i>
+            </div>
+          </div>
+
+          <div class="trending-item">
+            <div class="trending-number">2</div>
+            <div class="trending-content">
+              <div class="trending-title">打造个人学习系统</div>
+              <div class="trending-meta">28K 收听 · 320 评论</div>
+            </div>
+            <div class="trending-actions">
+              <i class="fa-solid fa-play"></i>
+            </div>
+          </div>
+
+          <div class="trending-item">
+            <div class="trending-number">3</div>
+            <div class="trending-content">
+              <div class="trending-title">情绪管理与心理弹性</div>
+              <div class="trending-meta">25K 收听 · 280 评论</div>
+            </div>
+            <div class="trending-actions">
+              <i class="fa-solid fa-play"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <a href="home.html" class="tab-bar-item" id="tab-home">
+          <div class="tab-bar-icon"><i class="fa-solid fa-house"></i></div>
+          <div class="tab-bar-text">首页</div>
+        </a>
+        <a href="explore.html" class="tab-bar-item active" id="tab-explore">
+          <div class="tab-bar-icon"><i class="fa-solid fa-compass"></i></div>
+          <div class="tab-bar-text">探索</div>
+        </a>
+        <a href="record.html" class="tab-bar-item" id="tab-record">
+          <div class="tab-bar-icon"><i class="fa-solid fa-microphone"></i></div>
+          <div class="tab-bar-text">录制</div>
+        </a>
+        <a href="profile.html" class="tab-bar-item" id="tab-profile">
+          <div class="tab-bar-icon"><i class="fa-solid fa-user"></i></div>
+          <div class="tab-bar-text">我的</div>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      // Update status bar time
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        document.querySelector('.status-bar-left span').textContent = `${hours}:${minutes}`;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000); // Update time every minute
+
+      // Category pill selection
+      document.querySelectorAll('.category-pill').forEach((pill) => {
+        pill.addEventListener('click', function () {
+          document.querySelectorAll('.category-pill').forEach((p) => {
+            p.classList.remove('active');
+          });
+          this.classList.add('active');
+        });
+      });
+    </script>
+  </body>
+</html>

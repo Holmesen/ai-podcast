@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 内容总结</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      .nav-header {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+        margin-bottom: 1.5rem;
+      }
+
+      .nav-back {
+        margin-right: 1rem;
+        font-size: 1.25rem;
+        color: var(--neutral-700);
+      }
+
+      .page-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .summary-header {
+        margin-bottom: 2rem;
+      }
+
+      .summary-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--neutral-900);
+      }
+
+      .summary-meta {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        color: var(--neutral-500);
+      }
+
+      .summary-meta-item {
+        display: flex;
+        align-items: center;
+        margin-right: 1rem;
+      }
+
+      .summary-meta-item i {
+        margin-right: 0.25rem;
+      }
+
+      .summary-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .summary-tag {
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        font-size: 0.8rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+      }
+
+      .summary-section {
+        margin-bottom: 2rem;
+      }
+
+      .summary-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+      }
+
+      .summary-section-title i {
+        color: var(--primary-color);
+        margin-right: 0.5rem;
+      }
+
+      .summary-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .summary-list-item {
+        display: flex;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      .summary-list-item:before {
+        content: "•";
+        color: var(--primary-color);
+        font-weight: bold;
+        margin-right: 0.75rem;
+      }
+
+      .quote-card {
+        background-color: var(--neutral-100);
+        border-radius: var(--border-radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .quote-card:before {
+        content: """;
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        font-size: 3rem;
+        color: var(--neutral-300);
+        line-height: 1;
+        z-index: 0;
+      }
+
+      .quote-content {
+        position: relative;
+        z-index: 1;
+        font-style: italic;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      .quote-author {
+        display: flex;
+        align-items: center;
+      }
+
+      .quote-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 15px;
+        margin-right: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.8rem;
+      }
+
+      .user-quote-avatar {
+        background-color: var(--secondary-color);
+      }
+
+      .ai-quote-avatar {
+        background-color: var(--primary-color);
+      }
+
+      .quote-author-name {
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .action-button {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem;
+        border-radius: var(--border-radius-lg);
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .action-button i {
+        margin-right: 0.5rem;
+      }
+
+      .action-button-primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .action-button-secondary {
+        background-color: var(--neutral-100);
+        color: var(--neutral-700);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span>9:41</span>
+        </div>
+        <div class="status-bar-center">
+          <!-- Dynamic notch space -->
+        </div>
+        <div class="status-bar-right">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="nav-header">
+          <a href="record.html" class="nav-back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </a>
+          <h1 class="page-title">内容总结</h1>
+        </div>
+
+        <div class="summary-header">
+          <h1 class="summary-title">创意思维方法与实践</h1>
+
+          <div class="summary-meta">
+            <div class="summary-meta-item">
+              <i class="fa-regular fa-clock"></i>
+              <span>25 分钟</span>
+            </div>
+            <div class="summary-meta-item">
+              <i class="fa-regular fa-calendar"></i>
+              <span>2023.06.15</span>
+            </div>
+          </div>
+
+          <div class="summary-tags">
+            <div class="summary-tag">创意思维</div>
+            <div class="summary-tag">跨领域学习</div>
+            <div class="summary-tag">创新方法</div>
+            <div class="summary-tag">团队合作</div>
+          </div>
+        </div>
+
+        <div class="summary-section">
+          <h2 class="summary-section-title">
+            <i class="fa-solid fa-lightbulb"></i>
+            主要观点
+          </h2>
+
+          <ul class="summary-list">
+            <li class="summary-list-item">
+              跨领域学习是激发创意的有效方法，通过连接不同领域的知识可以产生新的解决方案
+            </li>
+            <li class="summary-list-item">
+              仿生学是一个将自然界的解决方案应用到人类问题上的学科，是跨领域创新的典型例子
+            </li>
+            <li class="summary-list-item">创意思维需要支持性的环境，开放的团队氛围使人们能够自由表达想法</li>
+            <li class="summary-list-item">创新过程中的失败是学习和成长的重要部分，需要被团队接纳和理解</li>
+          </ul>
+        </div>
+
+        <div class="summary-section">
+          <h2 class="summary-section-title">
+            <i class="fa-solid fa-quote-left"></i>
+            精彩观点
+          </h2>
+
+          <div class="quote-card">
+            <div class="quote-content">
+              我曾经在设计一个产品时借鉴了生物学中的自组织系统概念，让产品更具适应性和可扩展性。这种跨领域思考帮助我们解决了产品架构的问题。
+            </div>
+            <div class="quote-author">
+              <div class="quote-avatar user-quote-avatar">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <div class="quote-author-name">李明</div>
+            </div>
+          </div>
+
+          <div class="quote-card">
+            <div class="quote-content">
+              创意思维需要一个支持性的环境。开放的团队氛围可以让人更自由地表达想法，而不必担心被否定。团队成员应该被鼓励尝试新想法，即使可能会失败。
+            </div>
+            <div class="quote-author">
+              <div class="quote-avatar user-quote-avatar">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <div class="quote-author-name">李明</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-section">
+          <h2 class="summary-section-title">
+            <i class="fa-solid fa-list-check"></i>
+            实用技巧
+          </h2>
+
+          <ul class="summary-list">
+            <li class="summary-list-item">定期阅读不同领域的书籍和文章，寻找跨领域联系</li>
+            <li class="summary-list-item">使用思维导图工具将不同概念联系起来，发现新的关联</li>
+            <li class="summary-list-item">在团队中建立"无审判"的讨论环境，鼓励所有想法的表达</li>
+            <li class="summary-list-item">为创意活动提供专门的时间和空间，如创意工作坊或头脑风暴会议</li>
+            <li class="summary-list-item">将失败视为学习过程，通过反思和调整不断改进</li>
+          </ul>
+        </div>
+
+        <div class="summary-section">
+          <h2 class="summary-section-title">
+            <i class="fa-solid fa-arrow-trend-up"></i>
+            后续行动
+          </h2>
+
+          <ul class="summary-list">
+            <li class="summary-list-item">尝试每周阅读一本跨领域的书籍，并记录可能应用到工作中的灵感</li>
+            <li class="summary-list-item">组织团队创意工作坊，实践开放式讨论和头脑风暴技巧</li>
+            <li class="summary-list-item">研究成功的跨领域创新案例，分析其应用方法</li>
+            <li class="summary-list-item">建立个人创意日记，记录每天的新想法和灵感</li>
+          </ul>
+        </div>
+
+        <div class="action-buttons">
+          <button class="action-button action-button-primary">
+            <i class="fa-solid fa-download"></i>
+            保存笔记
+          </button>
+          <button class="action-button action-button-secondary">
+            <i class="fa-solid fa-share-nodes"></i>
+            分享
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Update status bar time
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        document.querySelector('.status-bar-left span').textContent = `${hours}:${minutes}`;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000); // Update time every minute
+    </script>
+  </body>
+</html>

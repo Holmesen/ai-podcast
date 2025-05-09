@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 主持人选择</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      .navigation-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .back-button {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background-color: var(--neutral-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: var(--neutral-700);
+        cursor: pointer;
+      }
+
+      .header-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .header-description {
+        color: var(--neutral-600);
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .search-container {
+        margin-bottom: 1.5rem;
+      }
+
+      .host-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .host-card {
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .host-card.selected {
+        border: 2px solid var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+      }
+
+      .host-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .host-img-container {
+        height: 120px;
+        position: relative;
+        background-color: var(--neutral-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .host-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 40px;
+        object-fit: cover;
+      }
+
+      .host-icon {
+        font-size: 2rem;
+        color: var(--neutral-400);
+      }
+
+      .host-type-badge {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: var(--border-radius-full);
+      }
+
+      .host-content {
+        padding: 1rem;
+      }
+
+      .host-name {
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+      }
+
+      .host-style {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+        margin-bottom: 0.5rem;
+      }
+
+      .host-attributes {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .host-attribute {
+        background-color: var(--neutral-100);
+        color: var(--neutral-700);
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: var(--border-radius-full);
+      }
+
+      .host-categories {
+        margin-bottom: 2rem;
+      }
+
+      .category-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .action-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        padding: 1rem;
+        box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        justify-content: center;
+        z-index: 10;
+      }
+
+      .btn-continue {
+        width: 100%;
+        max-width: 300px;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.8rem;
+        border-radius: var(--border-radius-lg);
+        text-align: center;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn-continue.disabled {
+        background-color: var(--neutral-300);
+        cursor: not-allowed;
+      }
+
+      .content-with-footer {
+        padding-bottom: 5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span>9:41</span>
+        </div>
+        <div class="status-bar-center">
+          <!-- Dynamic notch space -->
+        </div>
+        <div class="status-bar-right">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="content-area content-with-footer">
+        <div class="navigation-header">
+          <div class="back-button">
+            <i class="fa-solid fa-chevron-left"></i>
+          </div>
+          <div class="header-title">选择 AI 主持人</div>
+        </div>
+
+        <p class="header-description">选择一位适合你话题的 AI 主持人，不同风格的主持人会带来不同的对话体验</p>
+
+        <div class="search-container">
+          <div class="ios-search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="搜索主持人风格或专长领域" />
+          </div>
+        </div>
+
+        <div class="host-categories">
+          <div class="category-title">推荐主持人</div>
+          <div class="host-grid">
+            <div class="host-card selected" data-host-id="1">
+              <div class="host-img-container">
+                <img
+                  src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                  class="host-img"
+                  alt="Michael"
+                />
+                <div class="host-type-badge">热门</div>
+              </div>
+              <div class="host-content">
+                <div class="host-name">Michael</div>
+                <div class="host-style">深度思考型主持人</div>
+                <div class="host-attributes">
+                  <div class="host-attribute">科技</div>
+                  <div class="host-attribute">哲学</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="host-card" data-host-id="2">
+              <div class="host-img-container">
+                <img
+                  src="https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1361&q=80"
+                  class="host-img"
+                  alt="Sarah"
+                />
+                <div class="host-type-badge">推荐</div>
+              </div>
+              <div class="host-content">
+                <div class="host-name">Sarah</div>
+                <div class="host-style">灵活友好型主持人</div>
+                <div class="host-attributes">
+                  <div class="host-attribute">心理</div>
+                  <div class="host-attribute">艺术</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="host-categories">
+          <div class="category-title">专业领域</div>
+          <div class="host-grid">
+            <div class="host-card" data-host-id="3">
+              <div class="host-img-container">
+                <img
+                  src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+                  class="host-img"
+                  alt="Alex"
+                />
+              </div>
+              <div class="host-content">
+                <div class="host-name">Alex</div>
+                <div class="host-style">商业分析型主持人</div>
+                <div class="host-attributes">
+                  <div class="host-attribute">创业</div>
+                  <div class="host-attribute">金融</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="host-card" data-host-id="4">
+              <div class="host-img-container">
+                <img
+                  src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+                  class="host-img"
+                  alt="Emma"
+                />
+              </div>
+              <div class="host-content">
+                <div class="host-name">Emma</div>
+                <div class="host-style">教育引导型主持人</div>
+                <div class="host-attributes">
+                  <div class="host-attribute">教育</div>
+                  <div class="host-attribute">自我成长</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="host-categories">
+          <div class="category-title">风格定制</div>
+          <div class="host-grid">
+            <div class="host-card" data-host-id="custom">
+              <div class="host-img-container">
+                <div class="host-icon">
+                  <i class="fa-solid fa-plus"></i>
+                </div>
+              </div>
+              <div class="host-content">
+                <div class="host-name">自定义主持人</div>
+                <div class="host-style">根据你的需求定制风格</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-footer">
+        <div class="btn-continue">继续</div>
+      </div>
+    </div>
+
+    <script>
+      // 更新状态栏时间
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        document.querySelector('.status-bar-left span').textContent = `${hours}:${minutes}`;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000); // 每分钟更新一次时间
+
+      // 主持人选择交互
+      const hostCards = document.querySelectorAll('.host-card');
+      hostCards.forEach((card) => {
+        card.addEventListener('click', function () {
+          // 移除所有选中状态
+          hostCards.forEach((c) => c.classList.remove('selected'));
+          // 添加当前选中状态
+          this.classList.add('selected');
+        });
+      });
+
+      // 返回按钮
+      document.querySelector('.back-button').addEventListener('click', function () {
+        window.location.href = 'topic_selection.html';
+      });
+
+      // 继续按钮
+      document.querySelector('.btn-continue').addEventListener('click', function () {
+        window.location.href = 'record.html';
+      });
+    </script>
+  </body>
+</html>

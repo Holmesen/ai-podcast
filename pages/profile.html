@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 个人中心</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      .profile-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+
+      .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 40px;
+        background-color: var(--secondary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        margin-right: 1.5rem;
+      }
+
+      .profile-info {
+        flex: 1;
+      }
+
+      .profile-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-bio {
+        color: var(--neutral-600);
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .profile-stats {
+        display: flex;
+        gap: 1.5rem;
+      }
+
+      .profile-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .profile-stat-value {
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+
+      .profile-stat-label {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .segment-control {
+        background-color: var(--neutral-100);
+        border-radius: var(--border-radius-lg);
+        display: flex;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+      }
+
+      .segment-item {
+        flex: 1;
+        text-align: center;
+        padding: 0.75rem 0;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+
+      .segment-item.active {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .section-link {
+        font-size: 0.9rem;
+        color: var(--primary-color);
+        font-weight: 500;
+      }
+
+      .podcast-item {
+        display: flex;
+        margin-bottom: 1.25rem;
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .podcast-item-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+      }
+
+      .podcast-item-content {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .podcast-item-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      .podcast-item-desc {
+        font-size: 0.8rem;
+        color: var(--neutral-600);
+        margin-bottom: 0.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .podcast-item-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .profile-actions {
+        margin-top: 2rem;
+      }
+
+      .profile-action {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .profile-action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background-color: var(--neutral-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: var(--neutral-700);
+        font-size: 1.2rem;
+      }
+
+      .profile-action-content {
+        flex: 1;
+      }
+
+      .profile-action-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-action-desc {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .profile-action-arrow {
+        color: var(--neutral-400);
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1rem;
+        color: var(--neutral-500);
+        display: none;
+      }
+
+      .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: var(--neutral-300);
+      }
+
+      .empty-state-text {
+        text-align: center;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .badge {
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        margin-left: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span>9:41</span>
+        </div>
+        <div class="status-bar-center">
+          <!-- Dynamic notch space -->
+        </div>
+        <div class="status-bar-right">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="profile-info">
+            <div class="profile-name">李明</div>
+            <div class="profile-bio">产品设计师 | 创意思考者</div>
+            <div class="profile-stats">
+              <div class="profile-stat">
+                <div class="profile-stat-value">12</div>
+                <div class="profile-stat-label">播客</div>
+              </div>
+              <div class="profile-stat">
+                <div class="profile-stat-value">5</div>
+                <div class="profile-stat-label">收藏</div>
+              </div>
+              <div class="profile-stat">
+                <div class="profile-stat-value">320</div>
+                <div class="profile-stat-label">分钟</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="segment-control">
+          <div class="segment-item active" data-target="podcasts">我的播客</div>
+          <div class="segment-item" data-target="collections">收藏</div>
+          <div class="segment-item" data-target="settings">设置</div>
+        </div>
+
+        <div id="podcasts-section">
+          <div class="section-title">
+            <span>最近录制 <span class="badge">3 新</span></span>
+            <a href="#" class="section-link">查看全部</a>
+          </div>
+
+          <div class="podcast-item">
+            <img
+              src="https://images.unsplash.com/photo-1589903308904-1010c2294adc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="podcast-item-img"
+              alt="创意思维方法"
+            />
+            <div class="podcast-item-content">
+              <div>
+                <div class="podcast-item-title">创意思维方法与实践</div>
+                <div class="podcast-item-desc">探讨跨领域学习如何促进创新思维，以及环境因素对创造力的影响</div>
+              </div>
+              <div class="podcast-item-meta">
+                <span>25分钟 · 今天</span>
+                <span><i class="fa-solid fa-play"></i> 继续</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="podcast-item">
+            <img
+              src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="podcast-item-img"
+              alt="数字极简主义"
+            />
+            <div class="podcast-item-content">
+              <div>
+                <div class="podcast-item-title">数字极简主义与专注力</div>
+                <div class="podcast-item-desc">讨论如何在信息爆炸的时代保持专注，以及数字极简主义的实践方法</div>
+              </div>
+              <div class="podcast-item-meta">
+                <span>32分钟 · 2天前</span>
+                <span><i class="fa-solid fa-play"></i> 继续</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="podcast-item">
+            <img
+              src="https://images.unsplash.com/photo-1521790361543-f645cf042ec4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1469&q=80"
+              class="podcast-item-img"
+              alt="未来工作趋势"
+            />
+            <div class="podcast-item-content">
+              <div>
+                <div class="podcast-item-title">未来工作趋势与远程协作</div>
+                <div class="podcast-item-desc">探索后疫情时代的工作模式变革，以及远程团队的有效协作策略</div>
+              </div>
+              <div class="podcast-item-meta">
+                <span>28分钟 · 上周</span>
+                <span><i class="fa-solid fa-play"></i> 继续</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="collections-section" style="display: none">
+          <div class="section-title">
+            <span>收藏的播客</span>
+            <a href="#" class="section-link">管理</a>
+          </div>
+
+          <div class="podcast-item">
+            <img
+              src="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1474&q=80"
+              class="podcast-item-img"
+              alt="有效学习方法"
+            />
+            <div class="podcast-item-content">
+              <div>
+                <div class="podcast-item-title">有效学习方法与知识管理</div>
+                <div class="podcast-item-desc">探讨终身学习的策略与工具，以及如何构建个人知识管理系统</div>
+              </div>
+              <div class="podcast-item-meta">
+                <span>36分钟 · 由 张三 录制</span>
+                <span><i class="fa-solid fa-play"></i> 播放</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="podcast-item">
+            <img
+              src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1472&q=80"
+              class="podcast-item-img"
+              alt="技术创业"
+            />
+            <div class="podcast-item-content">
+              <div>
+                <div class="podcast-item-title">技术创业与产品思维</div>
+                <div class="podcast-item-desc">从创意到执行，探讨技术创业的关键要素与产品思维的培养</div>
+              </div>
+              <div class="podcast-item-meta">
+                <span>42分钟 · 由 李四 录制</span>
+                <span><i class="fa-solid fa-play"></i> 播放</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state">
+            <i class="fa-regular fa-bookmark empty-state-icon"></i>
+            <div class="empty-state-text">你还没有收藏任何播客</div>
+            <a href="explore.html" class="btn btn-primary">探索热门话题</a>
+          </div>
+        </div>
+
+        <div id="settings-section" style="display: none">
+          <div class="profile-actions">
+            <div class="profile-action">
+              <div class="profile-action-icon">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <div class="profile-action-content">
+                <div class="profile-action-title">账号信息</div>
+                <div class="profile-action-desc">管理你的个人资料和账号设置</div>
+              </div>
+              <div class="profile-action-arrow">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+
+            <div class="profile-action">
+              <div class="profile-action-icon">
+                <i class="fa-solid fa-bell"></i>
+              </div>
+              <div class="profile-action-content">
+                <div class="profile-action-title">通知设置</div>
+                <div class="profile-action-desc">管理应用通知和提醒</div>
+              </div>
+              <div class="profile-action-arrow">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+
+            <div class="profile-action">
+              <div class="profile-action-icon">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <div class="profile-action-content">
+                <div class="profile-action-title">隐私与安全</div>
+                <div class="profile-action-desc">管理数据共享和隐私设置</div>
+              </div>
+              <div class="profile-action-arrow">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+
+            <div class="profile-action">
+              <div class="profile-action-icon">
+                <i class="fa-solid fa-circle-question"></i>
+              </div>
+              <div class="profile-action-content">
+                <div class="profile-action-title">帮助与支持</div>
+                <div class="profile-action-desc">常见问题解答和联系支持</div>
+              </div>
+              <div class="profile-action-arrow">
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
+            </div>
+
+            <div class="profile-action" style="color: #ef4444">
+              <div class="profile-action-icon" style="color: #ef4444">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              </div>
+              <div class="profile-action-content">
+                <div class="profile-action-title" style="color: #ef4444">退出登录</div>
+                <div class="profile-action-desc">从当前设备退出登录</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <a href="home.html" class="tab-bar-item" id="tab-home">
+          <div class="tab-bar-icon"><i class="fa-solid fa-house"></i></div>
+          <div class="tab-bar-text">首页</div>
+        </a>
+        <a href="explore.html" class="tab-bar-item" id="tab-explore">
+          <div class="tab-bar-icon"><i class="fa-solid fa-compass"></i></div>
+          <div class="tab-bar-text">探索</div>
+        </a>
+        <a href="record.html" class="tab-bar-item" id="tab-record">
+          <div class="tab-bar-icon"><i class="fa-solid fa-microphone"></i></div>
+          <div class="tab-bar-text">录制</div>
+        </a>
+        <a href="profile.html" class="tab-bar-item active" id="tab-profile">
+          <div class="tab-bar-icon"><i class="fa-solid fa-user"></i></div>
+          <div class="tab-bar-text">我的</div>
+        </a>
+      </div>
+    </div>
+
+    <script>
+      // Update status bar time
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        document.querySelector('.status-bar-left span').textContent = `${hours}:${minutes}`;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000); // Update time every minute
+
+      // Segment control
+      const segmentItems = document.querySelectorAll('.segment-item');
+      const sections = {
+        podcasts: document.getElementById('podcasts-section'),
+        collections: document.getElementById('collections-section'),
+        settings: document.getElementById('settings-section'),
+      };
+
+      segmentItems.forEach((item) => {
+        item.addEventListener('click', function () {
+          // Update active segment
+          segmentItems.forEach((i) => i.classList.remove('active'));
+          this.classList.add('active');
+
+          // Show corresponding section
+          const target = this.getAttribute('data-target');
+          Object.keys(sections).forEach((key) => {
+            if (key === target) {
+              sections[key].style.display = 'block';
+            } else {
+              sections[key].style.display = 'none';
+            }
+          });
+
+          // Toggle empty state in collections
+          if (target === 'collections') {
+            // Uncomment to show empty state instead of items
+            // document.querySelectorAll('#collections-section .podcast-item').forEach(item => {
+            //   item.style.display = 'none';
+            // });
+            // document.querySelector('#collections-section .empty-state').style.display = 'flex';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

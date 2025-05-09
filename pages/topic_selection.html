@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 播客采访 - 话题选择</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <style>
+      .nav-header {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+        margin-bottom: 1.5rem;
+      }
+
+      .nav-back {
+        margin-right: 1rem;
+        font-size: 1.25rem;
+        color: var(--neutral-700);
+      }
+
+      .page-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .section-desc {
+        color: var(--neutral-600);
+        margin-bottom: 2rem;
+        line-height: 1.5;
+      }
+
+      .topic-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .topic-item {
+        position: relative;
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        border: 2px solid transparent;
+        transition: all 0.2s;
+      }
+
+      .topic-item.selected {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+      }
+
+      .topic-item-img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+      }
+
+      .topic-item-content {
+        padding: 0.75rem;
+      }
+
+      .topic-item-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .topic-item-desc {
+        font-size: 0.75rem;
+        color: var(--neutral-500);
+        height: 2.4rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .topic-check {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .topic-item.selected .topic-check {
+        opacity: 1;
+      }
+
+      .custom-topic {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background-color: white;
+        border-radius: var(--border-radius-lg);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .custom-topic-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background-color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+      }
+
+      .custom-topic-content {
+        flex: 1;
+      }
+
+      .custom-topic-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      .custom-topic-desc {
+        font-size: 0.8rem;
+        color: var(--neutral-500);
+      }
+
+      .action-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        background-color: white;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device-frame">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span>9:41</span>
+        </div>
+        <div class="status-bar-center">
+          <!-- Dynamic notch space -->
+        </div>
+        <div class="status-bar-right">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <div class="content-area" style="padding-bottom: 80px">
+        <div class="nav-header">
+          <a href="home.html" class="nav-back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </a>
+          <h1 class="page-title">选择话题</h1>
+        </div>
+
+        <p class="section-desc">选择一个你感兴趣的话题，AI 主持人将围绕这个主题与你深入对话，探讨独特见解。</p>
+
+        <div class="ios-search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="搜索更多话题" />
+        </div>
+
+        <h2 class="section-title" style="margin-top: 1.5rem">
+          <span>推荐话题</span>
+        </h2>
+
+        <div class="topic-grid">
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="topic-item-img"
+              alt="AI 技术趋势"
+            />
+            <div class="topic-check">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="topic-item-content">
+              <div class="topic-item-title">AI 技术趋势</div>
+              <div class="topic-item-desc">探讨人工智能最新发展及其对未来的影响</div>
+            </div>
+          </div>
+
+          <div class="topic-item selected">
+            <img
+              src="https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+              class="topic-item-img"
+              alt="创意思维方法"
+            />
+            <div class="topic-check">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="topic-item-content">
+              <div class="topic-item-title">创意思维方法</div>
+              <div class="topic-item-desc">突破思维局限，激发创造力的实用技巧</div>
+            </div>
+          </div>
+
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1494253109108-2e30c049369b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="topic-item-img"
+              alt="数字化转型"
+            />
+            <div class="topic-check">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="topic-item-content">
+              <div class="topic-item-title">数字化转型</div>
+              <div class="topic-item-desc">讨论企业如何应对数字化挑战与机遇</div>
+            </div>
+          </div>
+
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1541544741938-0af808871cc0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="topic-item-img"
+              alt="心理健康管理"
+            />
+            <div class="topic-check">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="topic-item-content">
+              <div class="topic-item-title">心理健康管理</div>
+              <div class="topic-item-desc">探索现代生活中维护心理健康的策略</div>
+            </div>
+          </div>
+
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1522881451255-f59ad836fdfb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1472&q=80"
+              class="topic-item-img"
+              alt="职业规划发展"
+            />
+            <div class="topic-check">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="topic-item-content">
+              <div class="topic-item-title">职业规划发展</div>
+              <div class="topic-item-desc">解析个人职业生涯规划的关键要素</div>
+            </div>
+          </div>
+
+          <div class="topic-item">
+            <img
+              src="https://images.unsplash.com/photo-1515169067868-5387ec356754?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+              class="topic-item-img"
+              alt="可持续生活"
+            />
+            <div class="topic-check">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="topic-item-content">
+              <div class="topic-item-title">可持续生活</div>
+              <div class="topic-item-desc">探讨如何在日常生活中践行环保理念</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="custom-topic">
+          <div class="custom-topic-icon">
+            <i class="fa-solid fa-plus"></i>
+          </div>
+          <div class="custom-topic-content">
+            <div class="custom-topic-title">创建自定义话题</div>
+            <div class="custom-topic-desc">输入你想要探讨的具体话题或问题</div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--neutral-400)"></i>
+        </div>
+
+        <div class="action-footer">
+          <a href="record.html" class="btn btn-primary" style="width: 100%">开始对话</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Update status bar time
+      function updateTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        document.querySelector('.status-bar-left span').textContent = `${hours}:${minutes}`;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000); // Update time every minute
+
+      // Topic selection
+      document.querySelectorAll('.topic-item').forEach((topic) => {
+        topic.addEventListener('click', function () {
+          document.querySelectorAll('.topic-item').forEach((t) => {
+            t.classList.remove('selected');
+          });
+          this.classList.add('selected');
+        });
+      });
+    </script>
+  </body>
+</html>
