@@ -6,26 +6,19 @@ import '../polyfills';
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
         <Stack.Screen
           name="index"
           options={{
-            headerShown: false,
             presentation: 'fullScreenModal',
           }}
         />
-        <Stack.Screen
-          name="(auth)"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-          }}
-        />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
       </Stack>
     </SafeAreaProvider>
   );

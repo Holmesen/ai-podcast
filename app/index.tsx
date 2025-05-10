@@ -1,4 +1,4 @@
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
@@ -9,7 +9,6 @@ import { useAuth } from '../hooks/useAuth';
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
   const [isReady, setIsReady] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     // 在身份验证状态加载完成后标记组件为就绪
