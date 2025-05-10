@@ -102,7 +102,7 @@ export default function Home() {
           subtitle="记录你的独特见解和思考"
           icon="mic-outline"
           actionText="立即开始"
-          href="/screens/topic-selection"
+          href="/record"
         />
 
         <View style={styles.section}>

@@ -1,215 +1,312 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CustomTopicButton } from '../../components/CustomTopicButton';
+import { SearchBar } from '../../components/SearchBar';
+import { TopicSelectionItem } from '../../components/TopicSelectionItem';
+import { TopicService } from '../../services/topic-service';
 
-interface Message {
+interface TopicItem {
   id: string;
-  content: string;
-  sender: 'ai' | 'user';
-  timestamp: Date;
+  title: string;
+  description: string;
+  imageUrl: string;
 }
 
-// 思考指示器组件
-const ThinkingIndicator = () => (
-  <View style={styles.thinkingContainer}>
-    <View style={styles.thinkingDot} />
-    <View style={[styles.thinkingDot, styles.thinkingDotMiddle]} />
-    <View style={styles.thinkingDot} />
-  </View>
-);
+interface OngoingTopic {
+  topicId: string;
+  topicTitle: string;
+  topicDescription: string;
+  imageUrl: string;
+  lastMessageTime: string;
+  messageCount: number;
+}
 
-// 消息组件
-const ChatMessage = ({ message }: { message: Message }) => {
-  const isAI = message.sender === 'ai';
+export default function RecordTab() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTopicId, setSelectedTopicId] = useState('');
+  const [ongoingTopics, setOngoingTopics] = useState<OngoingTopic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [filteredTopics, setFilteredTopics] = useState<TopicItem[]>([]);
 
-  return (
-    <View style={[styles.messageContainer, isAI ? styles.messageAI : styles.messageUser]}>
-      <View style={[styles.messageAvatar, isAI ? styles.aiAvatar : styles.userAvatar]}>
-        <Ionicons name={isAI ? 'mic' : 'person'} size={16} color="white" />
+  // 加载话题数据
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        // 获取推荐话题
+        const topicData = await TopicService.getTopics(10, true);
+
+        // 将数据转换为组件需要的格式
+        const formattedTopics = topicData.map((topic) => ({
+          id: topic.id,
+          title: topic.title,
+          description: topic.description,
+          imageUrl:
+            topic.background_image_url ||
+            'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
+        }));
+
+        setTopics(formattedTopics);
+        setFilteredTopics(formattedTopics);
+
+        // 如果有数据，默认选中第一个话题
+        if (formattedTopics.length > 0) {
+          setSelectedTopicId(formattedTopics[0].id);
+        }
+      } catch (error) {
+        console.error('加载话题数据失败:', error);
+        // 出错时设置一些默认话题，确保UI可用
+        setTopics(getDefaultTopics());
+        setFilteredTopics(getDefaultTopics());
+        setSelectedTopicId('1');
+      }
+    };
+
+    fetchTopics();
+  }, []);
+
+  // 搜索过滤话题
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredTopics(topics);
+      return;
+    }
+
+    const lowerCaseQuery = searchQuery.toLowerCase();
+    const filtered = topics.filter(
+      (topic) =>
+        topic.title.toLowerCase().includes(lowerCaseQuery) || topic.description.toLowerCase().includes(lowerCaseQuery)
+    );
+
+    setFilteredTopics(filtered);
+  }, [searchQuery, topics]);
+
+  // 加载进行中的话题
+  useEffect(() => {
+    const loadOngoingTopics = async () => {
+      try {
+        // 获取当前进行中的话题
+        const ongoingTopicData = await AsyncStorage.getItem('ongoingTopics');
+        const currentTopic = await AsyncStorage.getItem('selectedTopic');
+
+        if (ongoingTopicData) {
+          const parsedOngoingTopics = JSON.parse(ongoingTopicData);
+          setOngoingTopics(parsedOngoingTopics);
+        } else if (currentTopic) {
+          // 如果没有进行中的话题记录，但有当前话题，添加到进行中
+          const parsedTopic = JSON.parse(currentTopic);
+
+          // 从话题列表中找到对应话题
+          const topicInfo = topics.find((t) => t.id === parsedTopic.topicId);
+
+          if (topicInfo) {
+            const newOngoingTopic: OngoingTopic = {
+              topicId: parsedTopic.topicId,
+              topicTitle: parsedTopic.topicTitle || topicInfo.title,
+              topicDescription: parsedTopic.topicDescription || topicInfo.description,
+              imageUrl: topicInfo.imageUrl,
+              lastMessageTime: new Date().toLocaleDateString(),
+              messageCount: 1,
+            };
+
+            setOngoingTopics([newOngoingTopic]);
+            // 保存到存储中
+            await AsyncStorage.setItem('ongoingTopics', JSON.stringify([newOngoingTopic]));
+          }
+        }
+      } catch (error) {
+        console.error('加载进行中话题失败:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // 只有在话题加载完成后才加载进行中的话题
+    if (topics.length > 0) {
+      loadOngoingTopics();
+    }
+  }, [topics]);
+
+  // 创建自定义话题
+  const handleCustomTopic = () => {
+    // 实现自定义话题功能
+  };
+
+  // 开始新对话
+  const startNewConversation = async () => {
+    // 获取选中的话题
+    const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
+
+    if (!selectedTopic) return;
+
+    // 准备话题信息
+    const topicInfo = {
+      topicId: selectedTopicId,
+      topicTitle: selectedTopic.title,
+      topicDescription: selectedTopic.description,
+    };
+
+    try {
+      // 存储选中的话题
+      await AsyncStorage.setItem('selectedTopic', JSON.stringify(topicInfo));
+
+      // 创建一个新的进行中话题
+      const newOngoingTopic: OngoingTopic = {
+        topicId: selectedTopicId,
+        topicTitle: selectedTopic.title,
+        topicDescription: selectedTopic.description,
+        imageUrl: selectedTopic.imageUrl,
+        lastMessageTime: new Date().toLocaleDateString(),
+        messageCount: 0,
+      };
+
+      // 更新进行中话题列表
+      const updatedOngoingTopics = [newOngoingTopic, ...ongoingTopics.filter((t) => t.topicId !== selectedTopicId)];
+      setOngoingTopics(updatedOngoingTopics);
+      await AsyncStorage.setItem('ongoingTopics', JSON.stringify(updatedOngoingTopics));
+
+      // 导航到对话页面
+      router.push({
+        pathname: '/screens/chat',
+      });
+    } catch (error) {
+      console.error('保存话题失败:', error);
+    }
+  };
+
+  // 继续进行中的对话
+  const continueConversation = async (topic: OngoingTopic) => {
+    try {
+      // 将选中的话题设置为当前话题
+      const topicInfo = {
+        topicId: topic.topicId,
+        topicTitle: topic.topicTitle,
+        topicDescription: topic.topicDescription,
+      };
+
+      await AsyncStorage.setItem('selectedTopic', JSON.stringify(topicInfo));
+
+      // 导航到对话页面
+      router.push({
+        pathname: '/screens/chat',
+      });
+    } catch (error) {
+      console.error('设置当前话题失败:', error);
+    }
+  };
+
+  // 渲染进行中的话题项
+  const renderOngoingTopicItem = (topic: OngoingTopic) => (
+    <TouchableOpacity key={topic.topicId} style={styles.ongoingTopicItem} onPress={() => continueConversation(topic)}>
+      <Image source={{ uri: topic.imageUrl }} style={styles.ongoingTopicImage} />
+      <View style={styles.ongoingTopicContent}>
+        <Text style={styles.ongoingTopicTitle}>{topic.topicTitle}</Text>
+        <Text style={styles.ongoingTopicMeta}>
+          上次更新: {topic.lastMessageTime} · {topic.messageCount} 条消息
+        </Text>
       </View>
-      <View style={[styles.messageContent, isAI ? styles.messageContentAI : styles.messageContentUser]}>
-        <Text style={[styles.messageText, isAI ? {} : styles.messageTextUser]}>{message.content}</Text>
-      </View>
-    </View>
+      <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+    </TouchableOpacity>
   );
-};
 
-export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>([
+  // 获取默认话题（当API加载失败时使用）
+  const getDefaultTopics = (): TopicItem[] => [
     {
       id: '1',
-      content:
-        '嗨，欢迎来到我们的播客！今天我们要聊聊创意思维方法。无论是工作还是生活中，创造力都是一项宝贵的能力。你平时是如何激发自己的创意的呢？',
-      sender: 'ai',
-      timestamp: new Date(),
+      title: 'AI 技术趋势',
+      description: '探讨人工智能最新发展及其对未来的影响',
+      imageUrl:
+        'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
     },
     {
       id: '2',
-      content: '我经常通过阅读不同领域的书籍来获取灵感，觉得跨领域的思维碰撞很有帮助。',
-      sender: 'user',
-      timestamp: new Date(),
+      title: '创意思维方法',
+      description: '突破思维局限，激发创造力的实用技巧',
+      imageUrl:
+        'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
     },
     {
       id: '3',
-      content:
-        '跨领域学习确实是激发创意的好方法！许多创新都来自于将不同领域的知识连接起来。你能举个例子说明这种跨领域思维如何帮助你解决了一个具体问题吗？',
-      sender: 'ai',
-      timestamp: new Date(),
+      title: '数字化转型',
+      description: '讨论企业如何应对数字化挑战与机遇',
+      imageUrl:
+        'https://images.unsplash.com/photo-1494253109108-2e30c049369b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
     },
-    {
-      id: '4',
-      content:
-        '我曾经在设计一个产品时借鉴了生物学中的自组织系统概念，让产品更具适应性和可扩展性。这种跨领域思考帮助我们解决了产品架构的问题。',
-      sender: 'user',
-      timestamp: new Date(),
-    },
-    {
-      id: '5',
-      content:
-        '这是个很棒的例子！将生物学原理应用到产品设计中确实很有创意。仿生学就是这样一个将自然界的解决方案应用到人类问题上的学科。你觉得在培养创意思维的过程中，环境因素有多重要？比如工作环境、团队氛围等。',
-      sender: 'ai',
-      timestamp: new Date(),
-    },
-  ]);
-  const [inputText, setInputText] = useState('');
-  const [isThinking, setIsThinking] = useState(true);
-  const [isRecording, setIsRecording] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  ];
 
-  useEffect(() => {
-    // 当消息更新时滚动到底部
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, [messages, isThinking]);
-
-  const sendMessage = () => {
-    if (inputText.trim() === '') return;
-
-    // 添加用户消息
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputText,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
-    setMessages([...messages, userMessage]);
-    setInputText('');
-    setIsThinking(true);
-
-    // 模拟AI思考后回复
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content:
-          '环境因素确实非常重要！创意思维需要一个支持性的环境。开放的团队氛围可以让人更自由地表达想法，而不必担心被否定。你们团队是如何营造创新氛围的？',
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, aiResponse]);
-      setIsThinking(false);
-    }, 2000);
-
-    // 隐藏键盘
-    Keyboard.dismiss();
-  };
-
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-  };
+  // 如果正在加载数据，显示加载指示器
+  if (isLoading && topics.length === 0) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>加载话题中...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* 顶部导航 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>对话模式</Text>
-        <Link href="/screens/summary" asChild>
-          <TouchableOpacity>
-            <Ionicons name="list-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-        </Link>
+        <Text style={styles.pageTitle}>录制播客</Text>
       </View>
 
-      {/* 主持人信息 */}
-      <View style={styles.hostInfo}>
-        <View style={styles.hostAvatar}>
-          <Ionicons name="mic" size={22} color="white" />
-        </View>
-        <View>
-          <Text style={styles.hostName}>Sarah</Text>
-          <Text style={styles.hostTitle}>AI 播客主持人</Text>
-        </View>
-      </View>
+      <ScrollView style={styles.scrollContainer}>
+        {/* 正在进行的话题区域 */}
+        {ongoingTopics.length > 0 && (
+          <View style={styles.ongoingTopicsSection}>
+            <Text style={styles.sectionTitle}>进行中的播客</Text>
+            <View style={styles.ongoingTopicsList}>{ongoingTopics.map(renderOngoingTopicItem)}</View>
+          </View>
+        )}
 
-      {/* 播客信息 */}
-      <View style={styles.podcastInfo}>
-        <View style={styles.podcastInfoIcon}>
-          <Ionicons name="bulb-outline" size={20} color="#6366f1" />
-        </View>
-        <View style={styles.podcastInfoContent}>
-          <Text style={styles.podcastInfoTitle}>创意思维方法</Text>
-          <Text style={styles.podcastInfoDesc}>突破思维局限，激发创造力的实用技巧</Text>
-        </View>
-      </View>
-
-      {/* 聊天消息区域 */}
-      <ScrollView ref={scrollViewRef} style={styles.chatContainer} contentContainerStyle={styles.chatContentContainer}>
-        {/* 对话操作按钮 */}
-        <View style={styles.chatActions}>
-          <TouchableOpacity style={styles.chatAction}>
-            <Ionicons name="recording-outline" size={22} color="#4b5563" />
-            <Text style={styles.chatActionText}>录音模式</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.chatAction}>
-            <Ionicons name="share-social-outline" size={22} color="#4b5563" />
-            <Text style={styles.chatActionText}>分享</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.chatAction}>
-            <Ionicons name="star-outline" size={22} color="#4b5563" />
-            <Text style={styles.chatActionText}>收藏</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.timeIndicator}>
-          <Text style={styles.timeText}>
-            今天 {new Date().getHours()}:{String(new Date().getMinutes()).padStart(2, '0')}
+        {/* 话题选择区域 */}
+        <View style={styles.newTopicSection}>
+          <Text style={styles.sectionTitle}>开始新的播客</Text>
+          <Text style={styles.sectionDesc}>
+            选择一个你感兴趣的话题，AI 主持人将围绕这个主题与你深入对话，探讨独特见解。
           </Text>
-        </View>
-        {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
-        ))}
 
-        {isThinking && <ThinkingIndicator />}
+          <SearchBar placeholder="搜索更多话题" value={searchQuery} onChangeText={setSearchQuery} />
+
+          {filteredTopics.length > 0 ? (
+            <View style={styles.topicGrid}>
+              {filteredTopics.map((topic) => (
+                <View style={styles.topicGridItem} key={topic.id}>
+                  <TopicSelectionItem
+                    title={topic.title}
+                    description={topic.description}
+                    imageUrl={topic.imageUrl}
+                    isSelected={selectedTopicId === topic.id}
+                    onSelect={() => setSelectedTopicId(topic.id)}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.noResultsContainer}>
+              <Ionicons name="search-outline" size={48} color="#d1d5db" />
+              <Text style={styles.noResultsText}>未找到相关话题</Text>
+              <Text style={styles.noResultsSubText}>请尝试其他关键词或创建自定义话题</Text>
+            </View>
+          )}
+
+          <CustomTopicButton onPress={handleCustomTopic} />
+        </View>
       </ScrollView>
 
-      {/* 输入区域 */}
-      <View style={styles.inputContainer}>
+      <View style={styles.actionFooter}>
         <TouchableOpacity
-          style={[styles.voiceButton, isRecording ? styles.recordingActive : {}]}
-          onPress={toggleRecording}
+          style={[styles.actionButton, !selectedTopicId && styles.actionButtonDisabled]}
+          onPress={startNewConversation}
+          disabled={!selectedTopicId}
         >
-          <Ionicons name={isRecording ? 'mic' : 'mic-outline'} size={22} color={isRecording ? 'white' : '#4b5563'} />
-        </TouchableOpacity>
-
-        <TextInput
-          style={styles.textInput}
-          placeholder="输入消息..."
-          placeholderTextColor="#9CA3AF"
-          value={inputText}
-          onChangeText={setInputText}
-          multiline
-          onSubmitEditing={sendMessage}
-        />
-
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Ionicons name="paper-plane" size={18} color="white" />
+          <Text style={styles.actionButtonText}>开始新对话</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -221,211 +318,136 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  header: {
-    flexDirection: 'row',
+  loadingContainer: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
-  headerTitle: {
-    fontSize: 18,
+  pageTitle: {
+    fontSize: 20,
     fontWeight: '600',
+    color: '#111827',
   },
-  hostInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    paddingBottom: 12,
-  },
-  hostAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#6366f1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  hostName: {
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  hostTitle: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  podcastInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    padding: 12,
-    margin: 16,
-    marginTop: 0,
-    marginBottom: 12,
-  },
-  podcastInfoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#ede9fe',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  podcastInfoContent: {
+  scrollContainer: {
     flex: 1,
   },
-  podcastInfoTitle: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  sectionDesc: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#4b5563',
+  },
+  ongoingTopicsSection: {
+    marginBottom: 16,
+  },
+  ongoingTopicsList: {
+    paddingHorizontal: 16,
+  },
+  ongoingTopicItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  ongoingTopicImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  ongoingTopicContent: {
+    flex: 1,
+  },
+  ongoingTopicTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    color: '#111827',
   },
-  podcastInfoDesc: {
+  ongoingTopicMeta: {
     fontSize: 14,
     color: '#6b7280',
   },
-  chatActions: {
+  newTopicSection: {
+    paddingBottom: 100, // 为底部按钮留出空间
+  },
+  topicGrid: {
+    display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+  },
+  topicGridItem: {
+    width: '50%',
+    padding: 8,
     marginBottom: 16,
   },
-  chatAction: {
+  noResultsContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    marginVertical: 16,
   },
-  chatActionText: {
-    fontSize: 12,
-    color: '#4b5563',
-    marginTop: 4,
-  },
-  timeIndicator: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  timeText: {
-    fontSize: 13,
+  noResultsText: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#6b7280',
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    marginTop: 16,
   },
-  chatContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
+  noResultsSubText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 8,
+    textAlign: 'center',
   },
-  chatContentContainer: {
-    paddingBottom: 16,
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    maxWidth: '100%',
-  },
-  messageAI: {
-    alignSelf: 'flex-start',
-  },
-  messageUser: {
-    alignSelf: 'flex-end',
-    flexDirection: 'row-reverse',
-  },
-  messageAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 8,
-  },
-  aiAvatar: {
-    backgroundColor: '#6366f1',
-  },
-  userAvatar: {
-    backgroundColor: '#4f46e5',
-  },
-  messageContent: {
-    padding: 12,
-    borderRadius: 20,
-    maxWidth: '75%',
-  },
-  messageContentAI: {
-    backgroundColor: '#f3f4f6',
-    borderBottomLeftRadius: 4,
-  },
-  messageContentUser: {
-    backgroundColor: '#6366f1',
-    borderBottomRightRadius: 4,
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  messageTextUser: {
-    color: 'white',
-  },
-  thinkingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 48,
-    marginBottom: 16,
-  },
-  thinkingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#9CA3AF',
-    marginRight: 4,
-    opacity: 0.7,
-    transform: [{ scale: 0.8 }],
-  },
-  thinkingDotMiddle: {
-    opacity: 1,
-    transform: [{ scale: 1 }],
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    paddingBottom: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+  actionFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
     backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
   },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 100,
-  },
-  voiceButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  recordingActive: {
+  actionButton: {
     backgroundColor: '#6366f1',
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#6366f1',
+    borderRadius: 8,
+    paddingVertical: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
+  },
+  actionButtonDisabled: {
+    backgroundColor: '#c7d2fe',
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

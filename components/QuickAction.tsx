@@ -20,7 +20,7 @@ export function QuickAction({ title, subtitle, icon, actionText, href }: QuickAc
       <View style={styles.quickActionContent}>
         <Text style={styles.quickActionTitle}>{title}</Text>
         <Text style={styles.quickActionSubtitle}>{subtitle}</Text>
-        <Link href={href} asChild>
+        <Link href={href as any} asChild>
           <TouchableOpacity style={styles.quickActionButton}>
             <Text style={styles.quickActionButtonText}>{actionText}</Text>
             <Ionicons name="arrow-forward" size={16} color="#6366f1" style={styles.buttonIcon} />
