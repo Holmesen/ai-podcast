@@ -15,29 +15,15 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="(auth)"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
           name="(tabs)"
           options={{
             headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="topic-selection"
-          options={{
-            headerShown: false,
-            presentation: 'fullScreenModal',
-          }}
-        />
-        <Stack.Screen
-          name="podcast-details"
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="summary"
-          options={{
-            headerShown: false,
-            presentation: 'card',
           }}
         />
       </Stack>

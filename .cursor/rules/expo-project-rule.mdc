@@ -1,4 +1,9 @@
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: helpful for create expo project
 globs: *.tsx
 alwaysApply: false
@@ -104,6 +109,11 @@ alwaysApply: false
   5. Implement expo-updates for over-the-air (OTA) updates.
   6. Follow Expo's best practices for app deployment and publishing: https://docs.expo.dev/distribution/introduction/
   7. Ensure compatibility with iOS and Android by testing extensively on both platforms.
+  8. 原型图可以参考“pages”里面的文件。
+  9. 数据库表结构可以参考“schema.sql”。
+  10. 页面存放在“/app/**”。
+  11. 非页面文件存放在“app”文件夹外面相应的文件夹里面。
+  12. 中文输出。
 
   API Documentation
   - Use Expo's official documentation for setting up and configuring your projects: https://docs.expo.dev/
