@@ -64,7 +64,7 @@ interface StreamingChatInterfaceProps {
   podcastId: string;
   hostName: string;
   hostAvatarUrl?: string;
-  onSaveComplete?: () => void;
+  onSaveComplete?: () => Promise<void>;
 }
 
 export function StreamingChatInterface({
@@ -263,7 +263,7 @@ export function StreamingChatInterface({
 
       // 调用回调
       if (onSaveComplete) {
-        onSaveComplete();
+        await onSaveComplete();
       }
     } catch (error) {
       console.error('完成对话错误:', error);
