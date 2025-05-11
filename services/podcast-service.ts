@@ -89,7 +89,7 @@ export const PodcastService = {
   async getUserPodcasts(
     userId?: string,
     limit: number = 20,
-    status: 'published' | 'draft' | 'private' | 'all' = 'published',
+    status: 'published' | 'draft' | 'private' | 'all' = 'published'
   ): Promise<Podcast[]> {
     try {
       if (!userId) {
@@ -198,9 +198,7 @@ export const PodcastService = {
    * @param userId 用户ID，如果不提供则获取当前登录用户的统计
    * @param enableDelay 是否启用延迟以模拟网络加载（仅用于开发环境）
    */
-  async getUserPodcastStats(
-    userId?: string
-  ): Promise<{
+  async getUserPodcastStats(userId?: string): Promise<{
     totalPodcasts: number;
     totalTopics: number;
     totalMinutes: number;
@@ -331,6 +329,387 @@ export const PodcastService = {
     } catch (error) {
       console.error('获取主持人列表错误:', error);
       return [];
+    }
+  },
+
+  /**
+   * 创建新的播客记录
+   * @param userId 用户ID
+   * @param hostId 主持人ID
+   * @param topicId 话题ID（可选）
+   * @param title 播客标题
+   * @param description 播客描述（可选）
+   * @param customTopic 自定义话题（当没有topicId时使用）
+   * @returns 创建的播客对象或null
+   */
+  async createPodcast(
+    userId: string,
+    hostId: string,
+    title: string,
+    description?: string,
+    topicId?: string,
+    customTopic?: string
+  ): Promise<Podcast | null> {
+    try {
+      if (!userId) {
+        const storedUserId = await SecureStore.getItemAsync('userId');
+        if (!storedUserId) throw new Error('未找到用户ID');
+        userId = storedUserId;
+      }
+
+      // 创建新播客记录
+      const { data, error } = await supabase
+        .from('podcast')
+        .insert([
+          {
+            user_id: userId,
+            host_id: hostId,
+            topic_id: topicId,
+            custom_topic: !topicId ? customTopic : undefined,
+            title,
+            description,
+            duration: 0, // 初始时长为0
+            publish_status: 'draft', // 初始状态为草稿
+            plays_count: 0,
+            favorites_count: 0,
+            is_downloadable: true,
+            show_ai_attribution: true,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return formatPodcast(data) as Podcast;
+    } catch (error) {
+      console.error('创建播客错误:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 保存对话消息到数据库
+   * @param podcastId 播客ID
+   * @param message 消息内容
+   * @param speakerType 发言类型 (host 或 user)
+   * @param timestamp 时间戳（秒）
+   * @param audioUrl 音频URL（可选）
+   * @returns 保存的消息
+   */
+  async saveMessage(
+    podcastId: string,
+    message: string,
+    speakerType: 'host' | 'user',
+    timestamp: number,
+    audioUrl?: string
+  ): Promise<PodcastMessage | null> {
+    try {
+      const { data, error } = await supabase
+        .from('podcast_message')
+        .insert([
+          {
+            podcast_id: podcastId,
+            speaker_type: speakerType,
+            content: message,
+            timestamp: timestamp,
+            audio_segment_url: speakerType === 'host' ? audioUrl : undefined,
+            original_audio_url: speakerType === 'user' ? audioUrl : undefined,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as PodcastMessage;
+    } catch (error) {
+      console.error('保存消息错误:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 获取播客的所有对话消息
+   * @param podcastId 播客ID
+   * @returns 消息列表
+   */
+  async getMessages(podcastId: string): Promise<PodcastMessage[]> {
+    try {
+      const { data, error } = await supabase
+        .from('podcast_message')
+        .select('*')
+        .eq('podcast_id', podcastId)
+        .order('timestamp', { ascending: true });
+
+      if (error) throw error;
+      return data as PodcastMessage[];
+    } catch (error) {
+      console.error('获取消息错误:', error);
+      return [];
+    }
+  },
+
+  /**
+   * 导出播客对话为文本
+   * @param podcastId 播客ID
+   * @returns 格式化的对话文本
+   */
+  async exportConversationText(podcastId: string): Promise<string> {
+    try {
+      const messages = await this.getMessages(podcastId);
+
+      // 获取播客信息
+      const { data: podcast, error } = await supabase
+        .from('podcast')
+        .select('title, host_id')
+        .eq('id', podcastId)
+        .single();
+
+      if (error) throw error;
+
+      // 获取主持人信息
+      const { data: host } = await supabase.from('podcast_host').select('name').eq('id', podcast.host_id).single();
+
+      let result = `# ${podcast.title}\n\n`;
+      const hostName = host?.name || 'AI主持人';
+
+      messages.forEach((msg) => {
+        const speaker = msg.speaker_type === 'host' ? hostName : '用户';
+        result += `**${speaker}**: ${msg.content}\n\n`;
+      });
+
+      return result;
+    } catch (error) {
+      console.error('导出对话文本错误:', error);
+      return '无法导出对话';
+    }
+  },
+
+  /**
+   * 更新播客信息
+   * @param podcastId 播客ID
+   * @param updates 需要更新的字段
+   * @returns 是否成功更新
+   */
+  async updatePodcast(
+    podcastId: string,
+    updates: Partial<{
+      title: string;
+      description: string;
+      duration: number;
+      publish_status: 'draft' | 'published' | 'private';
+      cover_image_url: string;
+      audio_url: string;
+      tags: string[];
+      is_downloadable: boolean;
+      show_ai_attribution: boolean;
+    }>
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('podcast').update(updates).eq('id', podcastId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('更新播客错误:', error);
+      return false;
+    }
+  },
+
+  /**
+   * 计算并更新播客时长
+   * 根据对话消息计算播客总时长并更新
+   * @param podcastId 播客ID
+   * @returns 更新后的时长（秒）
+   */
+  async updatePodcastDuration(podcastId: string): Promise<number> {
+    try {
+      // 获取所有消息
+      const messages = await this.getMessages(podcastId);
+
+      // 假设每个用户消息平均需要10秒，AI回复平均需要15秒
+      let totalDuration = 0;
+
+      messages.forEach((msg) => {
+        // 根据消息类型和长度估算时长
+        const contentLength = msg.content.length;
+        const baseTime = msg.speaker_type === 'user' ? 10 : 15;
+        const messageDuration = baseTime + Math.floor(contentLength / 30);
+
+        totalDuration += messageDuration;
+      });
+
+      // 更新播客时长
+      await this.updatePodcast(podcastId, { duration: totalDuration });
+
+      return totalDuration;
+    } catch (error) {
+      console.error('更新播客时长错误:', error);
+      return 0;
+    }
+  },
+
+  /**
+   * 发布播客
+   * 将播客状态设置为已发布
+   * @param podcastId 播客ID
+   * @returns 是否成功发布
+   */
+  async publishPodcast(podcastId: string): Promise<boolean> {
+    try {
+      // 先更新时长
+      await this.updatePodcastDuration(podcastId);
+
+      // 设置为已发布状态
+      const { error } = await supabase
+        .from('podcast')
+        .update({
+          publish_status: 'published',
+          published_at: new Date().toISOString(),
+        })
+        .eq('id', podcastId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('发布播客错误:', error);
+      return false;
+    }
+  },
+
+  /**
+   * 创建播客总结
+   * 基于对话内容生成并保存播客总结
+   * @param podcastId 播客ID
+   * @param aiService 用于生成总结的AI服务
+   * @returns 是否成功创建总结
+   */
+  async createPodcastSummary(podcastId: string, aiService: any): Promise<boolean> {
+    try {
+      // 获取播客详情和消息
+      const { podcast, messages } = await this.getPodcastDetails(podcastId);
+
+      if (!podcast || messages.length === 0) {
+        throw new Error('没有足够的对话内容生成总结');
+      }
+
+      // 获取主持人信息
+      const { data: host } = await supabase.from('podcast_host').select('name').eq('id', podcast.host_id).single();
+
+      const hostName = host?.name || 'AI主持人';
+
+      // 提取对话内容
+      const conversationText = messages
+        .map((msg) => {
+          const speaker = msg.speaker_type === 'host' ? hostName : '用户';
+          return `${speaker}: ${msg.content}`;
+        })
+        .join('\n\n');
+
+      // 生成关键点提示
+      const keyPointsPrompt = `
+        请从以下对话中提取5-7个关键观点，每个观点用简短的一句话表示：
+        
+        ${conversationText}
+        
+        请以JSON数组格式返回结果，仅返回数组，不要有任何前缀或后缀。
+      `;
+
+      // 生成精彩语录提示
+      const quotesPrompt = `
+        请从以下对话中提取3-5个最有价值、最有见解的语录，保留原话：
+        
+        ${conversationText}
+        
+        请以JSON数组格式返回结果，仅返回数组，不要有任何前缀或后缀。
+      `;
+
+      // 生成实用建议提示
+      const tipsPrompt = `
+        请基于以下对话内容，提供3-5条实用的建议或行动步骤：
+        
+        ${conversationText}
+        
+        请以JSON数组格式返回结果，仅返回数组，不要有任何前缀或后缀。
+      `;
+
+      // 生成总结文本提示
+      const summaryPrompt = `
+        请对以下对话进行200-300字的简明总结，提炼主要内容和价值：
+        
+        ${conversationText}
+      `;
+
+      // 并行请求AI生成内容
+      const [keyPointsResponse, quotesResponse, tipsResponse, summaryResponse] = await Promise.all([
+        aiService.generateText(keyPointsPrompt),
+        aiService.generateText(quotesPrompt),
+        aiService.generateText(tipsPrompt),
+        aiService.generateText(summaryPrompt),
+      ]);
+
+      // 解析JSON响应
+      let keyPoints: string[] = [];
+      try {
+        keyPoints = JSON.parse(keyPointsResponse.text);
+      } catch (e) {
+        // 处理非JSON格式响应
+        keyPoints = keyPointsResponse.text.split('\n').filter((line: string) => line.trim().length > 0);
+        console.error(e);
+      }
+
+      let quotes: string[] = [];
+      try {
+        quotes = JSON.parse(quotesResponse.text);
+      } catch (e) {
+        quotes = quotesResponse.text.split('\n').filter((line: string) => line.trim().length > 0);
+        console.error(e);
+      }
+
+      let tips: string[] = [];
+      try {
+        tips = JSON.parse(tipsResponse.text);
+      } catch (e) {
+        tips = tipsResponse.text.split('\n').filter((line: string) => line.trim().length > 0);
+        console.error(e);
+      }
+
+      // 创建或更新播客总结记录
+      const { data: existingSummary } = await supabase
+        .from('podcast_summary')
+        .select('id')
+        .eq('podcast_id', podcastId)
+        .maybeSingle();
+
+      if (existingSummary) {
+        // 更新现有总结
+        await supabase
+          .from('podcast_summary')
+          .update({
+            key_points: keyPoints,
+            notable_quotes: quotes,
+            practical_tips: tips,
+            summary_text: summaryResponse.text,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingSummary.id);
+      } else {
+        // 创建新的总结
+        await supabase.from('podcast_summary').insert([
+          {
+            podcast_id: podcastId,
+            key_points: keyPoints,
+            notable_quotes: quotes,
+            practical_tips: tips,
+            summary_text: summaryResponse.text,
+          },
+        ]);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('创建播客总结错误:', error);
+      return false;
     }
   },
 };

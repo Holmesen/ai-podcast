@@ -1,8 +1,8 @@
-import { deepseek } from '@ai-sdk/deepseek';
-import { generateText } from 'ai';
+import { fetch as expoFetch } from 'expo/fetch';
+import { generateAPIUrl } from '../utils';
 
 interface AIResponse {
-  reasoning: string;
+  reasoning?: string;
   text: string;
   providerMetadata?: {
     deepseek?: {
@@ -14,15 +14,9 @@ interface AIResponse {
 
 export class AIService {
   private static instance: AIService;
-  private apiKey: string;
 
   private constructor() {
-    // 使用环境变量中的 API key
-    this.apiKey = process.env.DEEPSEEK_API_KEY || '';
-
-    if (!this.apiKey) {
-      throw new Error('DEEPSEEK_API_KEY 环境变量未设置');
-    }
+    // 单例模式初始化
   }
 
   public static getInstance(): AIService {
@@ -33,27 +27,66 @@ export class AIService {
   }
 
   /**
-   * 使用 DeepSeek 模型生成文本
+   * 使用 API 路由生成文本
    * @param prompt 输入提示词
-   * @returns 包含推理过程、生成文本和提供商元数据的 Promise
+   * @returns 包含生成文本和元数据的 Promise
    */
   public async generateText(prompt: string): Promise<AIResponse> {
     try {
-      // 使用默认 provider 实例
-      const result = await generateText({
-        model: deepseek('deepseek-chat'), // 使用 deepseek-chat 模型进行普通文本生成
-        prompt,
+      // 创建消息格式 - 支持聊天或单一提示词
+      const messages = Array.isArray(prompt) ? prompt : [{ role: 'user', content: prompt }];
+
+      console.log('Sending message to chat API:', JSON.stringify(messages).slice(0, 100) + '...');
+
+      // 使用 expo/fetch 调用 API
+      const response = await expoFetch(generateAPIUrl('/api/chat'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages }),
       });
 
-      if (!result.text) {
-        throw new Error('AI 模型未生成文本');
+      // 检查响应
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API 响应错误 (${response.status}): ${errorText}`);
       }
 
-      return {
-        reasoning: result.reasoning || '',
-        text: result.text,
-        providerMetadata: result.providerMetadata,
-      };
+      // 读取流响应
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
+
+      let result = '';
+      let done = false;
+
+      // 读取整个流
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+
+        if (value) {
+          // 解码并累积文本
+          const text = new TextDecoder().decode(value);
+          result += text;
+        }
+      }
+
+      // 解析结果 - 处理可能的JSON格式
+      try {
+        // 尝试解析为JSON
+        const parsedResult = JSON.parse(result);
+        return {
+          text: parsedResult.text || parsedResult.content || parsedResult,
+          reasoning: parsedResult.reasoning,
+        };
+      } catch (e) {
+        console.error(e);
+        // 如果不是有效的JSON，直接返回文本
+        return { text: result };
+      }
     } catch (error) {
       console.error('生成文本时出错:', error);
       if (error instanceof Error) {
@@ -64,25 +97,64 @@ export class AIService {
   }
 
   /**
-   * 使用 DeepSeek 推理模型生成带推理过程的文本
+   * 使用推理 API 生成带推理过程的文本
    * @param prompt 输入提示词
    * @returns 包含推理过程和生成文本的 Promise
    */
   public async generateTextWithReasoning(prompt: string): Promise<AIResponse> {
     try {
-      const result = await generateText({
-        model: deepseek('deepseek-reasoner'), // 使用 deepseek-reasoner 模型进行推理任务
-        prompt,
+      // 创建消息格式
+      const messages = Array.isArray(prompt) ? prompt : [{ role: 'user', content: prompt }];
+
+      // 使用 API 路由
+      const response = await expoFetch(generateAPIUrl('/api/reasoning+api'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages }),
       });
 
-      if (!result.text) {
-        throw new Error('AI 模型未生成文本');
+      // 检查响应
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`推理 API 响应错误 (${response.status}): ${errorText}`);
+      }
+
+      // 读取流响应
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取推理响应流');
+      }
+
+      let result = '';
+      let reasoning = '';
+      let done = false;
+
+      // 读取整个流
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+
+        if (value) {
+          const chunk = new TextDecoder().decode(value);
+
+          // 尝试解析块
+          try {
+            const data = JSON.parse(chunk);
+            if (data.reasoning) reasoning = data.reasoning;
+            if (data.text) result += data.text;
+          } catch (e) {
+            console.error(e);
+            // 如果不是 JSON，添加到结果
+            result += chunk;
+          }
+        }
       }
 
       return {
-        reasoning: result.reasoning || '',
-        text: result.text,
-        providerMetadata: result.providerMetadata,
+        text: result,
+        reasoning: reasoning,
       };
     } catch (error) {
       console.error('生成推理文本时出错:', error);
@@ -122,9 +194,16 @@ export class AIService {
       const prompt = `根据以下上下文生成5个有吸引力的播客主题:\n\n${context}\n\n请以JSON字符串数组的形式格式化响应。`;
       const { text } = await this.generateText(prompt);
 
-      // 解析响应为 JSON
-      const topics = JSON.parse(text) as string[];
-      return topics;
+      try {
+        // 尝试解析响应为 JSON
+        const topics = JSON.parse(text) as string[];
+        return topics;
+      } catch (e) {
+        console.error(e);
+        // 如果无法解析为JSON，按行分割
+        const lines = text.split('\n').filter((line) => line.trim().length > 0);
+        return lines.length > 0 ? lines : [text];
+      }
     } catch (error) {
       console.error('生成播客主题时出错:', error);
       if (error instanceof Error) {
