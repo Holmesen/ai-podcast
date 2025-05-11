@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomTopicButton } from '../../components/CustomTopicButton';
 import { SearchBar } from '../../components/SearchBar';
 import { TopicSelectionItem } from '../../components/TopicSelectionItem';
+import { PodcastService } from '../../services/podcast-service';
 import { TopicService } from '../../services/topic-service';
 
 interface TopicItem {
@@ -23,6 +25,7 @@ interface OngoingTopic {
   imageUrl: string;
   lastMessageTime: string;
   messageCount: number;
+  podcastId?: string;
 }
 
 export default function RecordTab() {
@@ -89,33 +92,80 @@ export default function RecordTab() {
   useEffect(() => {
     const loadOngoingTopics = async () => {
       try {
-        // 获取当前进行中的话题
-        const ongoingTopicData = await AsyncStorage.getItem('ongoingTopics');
-        const currentTopic = await AsyncStorage.getItem('selectedTopic');
+        // 先获取用户ID
+        const userId = await SecureStore.getItemAsync('userId');
+        if (!userId) {
+          setIsLoading(false);
+          return;
+        }
 
-        if (ongoingTopicData) {
-          const parsedOngoingTopics = JSON.parse(ongoingTopicData);
-          setOngoingTopics(parsedOngoingTopics);
-        } else if (currentTopic) {
-          // 如果没有进行中的话题记录，但有当前话题，添加到进行中
-          const parsedTopic = JSON.parse(currentTopic);
+        // 获取用户的播客列表，筛选草稿状态的播客（进行中的播客）
+        const userPodcasts = await PodcastService.getUserPodcasts(userId, 10, 'draft');
 
-          // 从话题列表中找到对应话题
-          const topicInfo = topics.find((t) => t.id === parsedTopic.topicId);
+        // 如果有数据库中的播客数据
+        if (userPodcasts && userPodcasts.length > 0) {
+          const ongoingTopicsFromDB = await Promise.all(
+            userPodcasts.map(async (podcast) => {
+              // 对每个播客，获取消息数量
+              const messages = await PodcastService.getMessages(podcast.id);
 
-          if (topicInfo) {
-            const newOngoingTopic: OngoingTopic = {
-              topicId: parsedTopic.topicId,
-              topicTitle: parsedTopic.topicTitle || topicInfo.title,
-              topicDescription: parsedTopic.topicDescription || topicInfo.description,
-              imageUrl: topicInfo.imageUrl,
-              lastMessageTime: new Date().toLocaleDateString(),
-              messageCount: 1,
-            };
+              // 查找话题数据
+              let topicInfo;
+              if (podcast.topic_id) {
+                topicInfo = topics.find((t) => t.id === podcast.topic_id);
+              }
 
-            setOngoingTopics([newOngoingTopic]);
-            // 保存到存储中
-            await AsyncStorage.setItem('ongoingTopics', JSON.stringify([newOngoingTopic]));
+              // 创建OngoingTopic对象
+              return {
+                podcastId: podcast.id,
+                topicId: podcast.topic_id || '',
+                topicTitle: podcast.title,
+                topicDescription: podcast.description || '',
+                imageUrl:
+                  topicInfo?.imageUrl ||
+                  podcast.cover_image_url ||
+                  'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
+                lastMessageTime: new Date(podcast.updated_at).toLocaleDateString(),
+                messageCount: messages.length,
+              };
+            })
+          );
+
+          // 更新进行中话题列表
+          setOngoingTopics(ongoingTopicsFromDB);
+
+          // 同时保存到AsyncStorage以便于离线访问
+          await AsyncStorage.setItem('ongoingTopics', JSON.stringify(ongoingTopicsFromDB));
+        } else {
+          // 如果数据库中没有数据，尝试从AsyncStorage获取
+          const ongoingTopicData = await AsyncStorage.getItem('ongoingTopics');
+          const currentTopic = await AsyncStorage.getItem('selectedTopic');
+
+          if (ongoingTopicData) {
+            const parsedOngoingTopics = JSON.parse(ongoingTopicData);
+            setOngoingTopics(parsedOngoingTopics);
+          } else if (currentTopic) {
+            // 如果没有进行中的话题记录，但有当前话题，添加到进行中
+            const parsedTopic = JSON.parse(currentTopic);
+
+            // 从话题列表中找到对应话题
+            const topicInfo = topics.find((t) => t.id === parsedTopic.topicId);
+
+            if (topicInfo) {
+              const newOngoingTopic: OngoingTopic = {
+                topicId: parsedTopic.topicId,
+                topicTitle: parsedTopic.topicTitle || topicInfo.title,
+                topicDescription: parsedTopic.topicDescription || topicInfo.description,
+                imageUrl: topicInfo.imageUrl,
+                lastMessageTime: new Date().toLocaleDateString(),
+                messageCount: 1,
+                podcastId: parsedTopic.podcastId,
+              };
+
+              setOngoingTopics([newOngoingTopic]);
+              // 保存到存储中
+              await AsyncStorage.setItem('ongoingTopics', JSON.stringify([newOngoingTopic]));
+            }
           }
         }
       } catch (error) {
@@ -181,11 +231,12 @@ export default function RecordTab() {
   // 继续进行中的对话
   const continueConversation = async (topic: OngoingTopic) => {
     try {
-      // 将选中的话题设置为当前话题
+      // 将选中的话题设置为当前话题，并包含podcastId
       const topicInfo = {
         topicId: topic.topicId,
         topicTitle: topic.topicTitle,
         topicDescription: topic.topicDescription,
+        podcastId: topic.podcastId,
       };
 
       await AsyncStorage.setItem('selectedTopic', JSON.stringify(topicInfo));
@@ -201,7 +252,11 @@ export default function RecordTab() {
 
   // 渲染进行中的话题项
   const renderOngoingTopicItem = (topic: OngoingTopic) => (
-    <TouchableOpacity key={topic.topicId} style={styles.ongoingTopicItem} onPress={() => continueConversation(topic)}>
+    <TouchableOpacity
+      key={topic.podcastId || topic.topicId}
+      style={styles.ongoingTopicItem}
+      onPress={() => continueConversation(topic)}
+    >
       <Image source={{ uri: topic.imageUrl }} style={styles.ongoingTopicImage} />
       <View style={styles.ongoingTopicContent}>
         <Text style={styles.ongoingTopicTitle}>{topic.topicTitle}</Text>

@@ -1,7 +1,7 @@
 import { fetch as expoFetch } from 'expo/fetch';
 import { generateAPIUrl } from '../utils';
 
-interface AIResponse {
+export interface AIResponse {
   reasoning?: string;
   text: string;
   providerMetadata?: {
@@ -35,8 +35,6 @@ export class AIService {
     try {
       // 创建消息格式 - 支持聊天或单一提示词
       const messages = Array.isArray(prompt) ? prompt : [{ role: 'user', content: prompt }];
-
-      console.log('Sending message to chat API:', JSON.stringify(messages).slice(0, 100) + '...');
 
       // 使用 expo/fetch 调用 API
       const response = await expoFetch(generateAPIUrl('/api/chat'), {
@@ -210,6 +208,55 @@ export class AIService {
         throw new Error(`生成播客主题失败: ${error.message}`);
       }
       throw new Error('生成播客主题失败');
+    }
+  }
+
+  /**
+   * 非流式生成文本 - 用于需要完整返回结果的场景，解决JSON解析问题
+   * @param prompt 输入提示词
+   * @returns 纯文本结果，不包含流式处理
+   */
+  public async generateTextNonStreaming(prompt: string): Promise<string> {
+    try {
+      // 创建消息格式 - 支持聊天或单一提示词
+      const messages = Array.isArray(prompt) ? prompt : [{ role: 'user', content: prompt }];
+
+      // 使用 expo/fetch 调用 API，添加非流式参数
+      const response = await expoFetch(generateAPIUrl('/api/chat'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages,
+          stream: false, // 关键参数：禁用流式响应
+        }),
+      });
+
+      // 检查响应
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API 响应错误 (${response.status}): ${errorText}`);
+      }
+
+      // 直接获取完整响应
+      const data = await response.json();
+
+      // 提取文本
+      let resultText = '';
+      if (typeof data === 'object') {
+        resultText = data.text || data.content || JSON.stringify(data);
+      } else {
+        resultText = String(data);
+      }
+
+      return Promise.resolve(resultText);
+    } catch (error) {
+      console.error('非流式生成文本时出错:', error);
+      if (error instanceof Error) {
+        return `文本生成失败: ${error.message}`;
+      }
+      return '使用 AI 模型生成文本失败';
     }
   }
 }

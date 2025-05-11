@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { AIService } from './ai-service';
 import { supabase } from './supabase';
 
 export interface Podcast {
@@ -584,7 +585,7 @@ export const PodcastService = {
    * @param aiService 用于生成总结的AI服务
    * @returns 是否成功创建总结
    */
-  async createPodcastSummary(podcastId: string, aiService: any): Promise<boolean> {
+  async createPodcastSummary(podcastId: string, aiService: AIService): Promise<boolean> {
     try {
       // 获取播客详情和消息
       const { podcast, messages } = await this.getPodcastDetails(podcastId);
@@ -640,38 +641,45 @@ export const PodcastService = {
         ${conversationText}
       `;
 
-      // 并行请求AI生成内容
-      const [keyPointsResponse, quotesResponse, tipsResponse, summaryResponse] = await Promise.all([
-        aiService.generateText(keyPointsPrompt),
-        aiService.generateText(quotesPrompt),
-        aiService.generateText(tipsPrompt),
-        aiService.generateText(summaryPrompt),
+      console.log('开始生成播客总结内容...');
+
+      // 使用非流式接口生成内容，避免JSON解析问题
+      const [keyPointsText, quotesText, tipsText, summaryText] = await Promise.all([
+        aiService.generateTextNonStreaming(keyPointsPrompt),
+        aiService.generateTextNonStreaming(quotesPrompt),
+        aiService.generateTextNonStreaming(tipsPrompt),
+        aiService.generateTextNonStreaming(summaryPrompt),
       ]);
+
+      console.log('所有AI内容生成完成');
 
       // 解析JSON响应
       let keyPoints: string[] = [];
       try {
-        keyPoints = JSON.parse(keyPointsResponse.text);
+        keyPoints = JSON.parse(keyPointsText);
       } catch (e) {
         // 处理非JSON格式响应
-        keyPoints = keyPointsResponse.text.split('\n').filter((line: string) => line.trim().length > 0);
-        console.error(e);
+        console.log('关键点不是有效的JSON格式，尝试分行解析...');
+        keyPoints = keyPointsText.split('\n').filter((line: string) => line.trim().length > 0);
+        console.error('关键点解析错误:', e);
       }
 
       let quotes: string[] = [];
       try {
-        quotes = JSON.parse(quotesResponse.text);
+        quotes = JSON.parse(quotesText);
       } catch (e) {
-        quotes = quotesResponse.text.split('\n').filter((line: string) => line.trim().length > 0);
-        console.error(e);
+        console.log('精彩语录不是有效的JSON格式，尝试分行解析...');
+        quotes = quotesText.split('\n').filter((line: string) => line.trim().length > 0);
+        console.error('精彩语录解析错误:', e);
       }
 
       let tips: string[] = [];
       try {
-        tips = JSON.parse(tipsResponse.text);
+        tips = JSON.parse(tipsText);
       } catch (e) {
-        tips = tipsResponse.text.split('\n').filter((line: string) => line.trim().length > 0);
-        console.error(e);
+        console.log('实用建议不是有效的JSON格式，尝试分行解析...');
+        tips = tipsText.split('\n').filter((line: string) => line.trim().length > 0);
+        console.error('实用建议解析错误:', e);
       }
 
       // 创建或更新播客总结记录
@@ -689,7 +697,7 @@ export const PodcastService = {
             key_points: keyPoints,
             notable_quotes: quotes,
             practical_tips: tips,
-            summary_text: summaryResponse.text,
+            summary_text: summaryText,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingSummary.id);
@@ -701,11 +709,12 @@ export const PodcastService = {
             key_points: keyPoints,
             notable_quotes: quotes,
             practical_tips: tips,
-            summary_text: summaryResponse.text,
+            summary_text: summaryText,
           },
         ]);
       }
 
+      console.log('播客总结已保存到数据库');
       return true;
     } catch (error) {
       console.error('创建播客总结错误:', error);

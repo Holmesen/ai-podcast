@@ -1,16 +1,5 @@
 import { useState } from 'react';
-import { AIService } from '../services/ai-service';
-
-interface AIResponse {
-  reasoning: string;
-  text: string;
-  providerMetadata?: {
-    deepseek?: {
-      promptCacheHitTokens?: number;
-      promptCacheMissTokens?: number;
-    };
-  };
-}
+import { AIResponse, AIService } from '../services/ai-service';
 
 interface UseAIResult {
   isLoading: boolean;
@@ -19,6 +8,7 @@ interface UseAIResult {
   generateTextWithReasoning: (prompt: string) => Promise<AIResponse>;
   generatePodcastSummary: (content: string) => Promise<string>;
   generatePodcastTopics: (context: string) => Promise<string[]>;
+  generateTextNonStreaming: (prompt: string) => Promise<string>;
 }
 
 export function useAI(): UseAIResult {
@@ -50,6 +40,19 @@ export function useAI(): UseAIResult {
     setError(null);
     try {
       const result = await aiService.generateTextWithReasoning(prompt);
+      return result;
+    } catch (error) {
+      return handleError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateTextNonStreaming = async (prompt: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await aiService.generateTextNonStreaming(prompt);
       return result;
     } catch (error) {
       return handleError(error);
@@ -91,5 +94,6 @@ export function useAI(): UseAIResult {
     generateTextWithReasoning,
     generatePodcastSummary,
     generatePodcastTopics,
+    generateTextNonStreaming,
   };
 }

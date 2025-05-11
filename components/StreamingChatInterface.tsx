@@ -1,4 +1,4 @@
-import { useChat } from '@ai-sdk/react';
+import { Message, useChat } from '@ai-sdk/react';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { fetch as expoFetch } from 'expo/fetch';
@@ -13,10 +13,52 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { PodcastService } from '../services/podcast-service';
+import { PodcastMessage, PodcastService } from '../services/podcast-service';
 import { generateAPIUrl } from '../utils';
 import { ChatMessage, ThinkingIndicator } from './ChatMessage';
 import { colors } from './theme';
+
+// 加载历史消息
+const loadHistoricalMessages = async (
+  podcastId: string,
+  setHistoricalMessages: (messages: PodcastMessage[]) => void,
+  setMessages: (messages: Message[] | ((messages: Message[]) => Message[])) => void,
+  savedMessagesRef: React.RefObject<Set<string>>,
+  setHasLoadedHistorical: (loaded: boolean) => void
+) => {
+  try {
+    console.log('正在加载历史消息...');
+    const dbMessages = await PodcastService.getMessages(podcastId);
+
+    if (dbMessages && dbMessages.length > 0) {
+      setHistoricalMessages(dbMessages);
+
+      // 将历史消息转换为useChat消息格式并加载
+      const chatMessages: Message[] = dbMessages.map((msg, index) => ({
+        id: `historical-${index}`,
+        role: msg.speaker_type === 'host' ? 'assistant' : 'user',
+        content: msg.content,
+      }));
+
+      // 将历史消息设置到useChat中
+      setMessages(chatMessages);
+
+      // 标记所有消息ID为已保存，防止重复保存
+      chatMessages.forEach((msg) => {
+        savedMessagesRef.current.add(msg.id);
+      });
+
+      console.log(`成功加载了${dbMessages.length}条历史消息`);
+    } else {
+      console.log('没有找到历史消息');
+    }
+
+    setHasLoadedHistorical(true);
+  } catch (error) {
+    console.error('加载历史消息失败:', error);
+    setHasLoadedHistorical(true);
+  }
+};
 
 interface StreamingChatInterfaceProps {
   podcastId: string;
@@ -33,11 +75,13 @@ export function StreamingChatInterface({
 }: StreamingChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [, setUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const [initialMessage, setInitialMessage] = useState<string | null>(null);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const savedMessagesRef = useRef<Set<string>>(new Set());
+  const [, setHistoricalMessages] = useState<PodcastMessage[]>([]);
+  const [hasLoadedHistorical, setHasLoadedHistorical] = useState(false);
 
   // 使用 AI SDK 的 useChat 钩子
   const {
@@ -47,6 +91,7 @@ export function StreamingChatInterface({
     handleSubmit,
     isLoading: isChatLoading,
     error,
+    setMessages,
   } = useChat({
     // 使用 expo/fetch 而不是原生的 fetch
     fetch: expoFetch as unknown as typeof globalThis.fetch,
@@ -84,6 +129,14 @@ export function StreamingChatInterface({
     getUserId();
   }, []);
 
+  // 加载历史消息
+  useEffect(() => {
+    if (podcastId && !hasLoadedHistorical) {
+      loadHistoricalMessages(podcastId, setHistoricalMessages, setMessages, savedMessagesRef, setHasLoadedHistorical);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [podcastId, hasLoadedHistorical]);
+
   // 加载初始消息
   useEffect(() => {
     const loadInitialMessage = async () => {
@@ -96,12 +149,27 @@ export function StreamingChatInterface({
 
         // 如果已有消息，不需要创建欢迎消息
         if (existingMessages && existingMessages.length > 0) {
+          console.log('播客已有消息记录，无需创建欢迎消息');
+
+          // 确保历史消息已加载
+          if (!hasLoadedHistorical) {
+            await loadHistoricalMessages(
+              podcastId,
+              setHistoricalMessages,
+              setMessages,
+              savedMessagesRef,
+              setHasLoadedHistorical
+            );
+          }
+
           setMessagesLoaded(true);
           setIsLoading(false);
           return;
         }
 
+        // 没有消息记录，创建欢迎消息
         if (podcast) {
+          console.log('创建新的欢迎消息');
           const welcomeMessage = `嗨，欢迎来到我们的播客！我是${hostName}。今天我们要聊聊${podcast.title}。${
             podcast.description || '我很期待和你的对话。'
           }你对这个话题有什么看法呢？`;
@@ -112,6 +180,17 @@ export function StreamingChatInterface({
 
           // 设置初始消息
           setInitialMessage(welcomeMessage);
+
+          // 添加欢迎消息到聊天记录中
+          const welcomeChatMessage: Message = {
+            id: 'welcome-message',
+            role: 'assistant',
+            content: welcomeMessage,
+          };
+
+          setMessages([welcomeChatMessage]);
+          savedMessagesRef.current.add('welcome-message');
+
           setMessagesLoaded(true);
         }
       } catch (error) {
@@ -124,7 +203,8 @@ export function StreamingChatInterface({
     if (podcastId && !messagesLoaded) {
       loadInitialMessage();
     }
-  }, [podcastId, hostName, messagesLoaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [podcastId, hostName, messagesLoaded, hasLoadedHistorical]);
 
   // 当消息更新时滚动到底部
   useEffect(() => {
@@ -216,7 +296,9 @@ export function StreamingChatInterface({
         contentContainerStyle={styles.messagesContentContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 显示初始欢迎消息（如果有） */}
+        {/* 历史消息已由useChat管理，不需要单独显示 */}
+
+        {/* 显示初始欢迎消息（如果有，且没有任何消息） */}
         {initialMessage && messages.length === 0 && <ChatMessage type="ai" content={initialMessage} />}
 
         {/* 显示所有消息，包括流式显示的消息 */}
