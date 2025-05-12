@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { DEFAULT_BLURHASH } from '../utils/image-utils';
 
 interface PodcastCardProps {
   title: string;
@@ -14,7 +16,14 @@ interface PodcastCardProps {
 export function PodcastCard({ title, host, duration, date, imageUrl, onPress }: PodcastCardProps) {
   return (
     <TouchableOpacity style={styles.podcastCard} onPress={onPress} activeOpacity={0.7}>
-      <Image source={{ uri: imageUrl }} style={styles.podcastCardImg} resizeMode="cover" />
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.podcastCardImg}
+        contentFit="cover"
+        placeholder={{ blurhash: DEFAULT_BLURHASH }}
+        transition={300}
+        cachePolicy="memory-disk"
+      />
       <View style={styles.podcastCardContent}>
         <View>
           <Text style={styles.podcastCardTitle}>{title}</Text>
@@ -46,8 +55,9 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   podcastCardImg: {
-    width: 80,
-    height: 80,
+    width: 92,
+    height: 92,
+    marginVertical: 'auto',
   },
   podcastCardContent: {
     flex: 1,

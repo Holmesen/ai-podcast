@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
-  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PodcastCard } from '../../components/PodcastCard';
 import { useAuth } from '../../hooks/useAuth';
 import { Podcast, PodcastService } from '../../services/podcast-service';
+import { DEFAULT_BLURHASH, generateAvatarUrl } from '../../utils/image-utils';
 
 // 骨架屏动画包装组件
 function SkeletonItem({ style }: { style: any }) {
@@ -102,11 +103,11 @@ export default function Profile() {
     if (!user) return;
 
     try {
-      // 获取用户播客 - 启用延迟以演示加载效果
+      // 获取用户播客
       const podcasts = await PodcastService.getUserPodcasts(user.id, 3, 'published');
       setUserPodcasts(podcasts);
 
-      // 获取用户统计数据 - 启用延迟以演示加载效果
+      // 获取用户统计数据
       const userStats = await PodcastService.getUserPodcastStats(user.id);
       setStats(userStats);
     } catch (error) {
@@ -144,7 +145,7 @@ export default function Profile() {
   // 导航到播客详情页
   const navigateToPodcastDetails = (podcastId: string) => {
     router.push({
-      pathname: `/screens/podcast-details`,
+      pathname: '/(podcast)/details/[id]',
       params: { id: podcastId },
     });
   };
@@ -174,7 +175,7 @@ export default function Profile() {
   // 获取用户头像
   const getAvatarUrl = () => {
     if (user.avatar_url) return user.avatar_url;
-    return `https://ui-avatars.com/api/?name=${user.display_name || user.username}`;
+    return generateAvatarUrl(user.display_name || user.username);
   };
 
   return (
@@ -220,6 +221,10 @@ export default function Profile() {
                   uri: getAvatarUrl(),
                 }}
                 style={styles.profileImage}
+                contentFit="cover"
+                placeholder={{ blurhash: DEFAULT_BLURHASH }}
+                transition={300}
+                cachePolicy="memory-disk"
               />
               <Text style={styles.profileName}>{getDisplayName()}</Text>
               <Text style={styles.profileBio}>{user.bio || '这个人很懒，还没有填写个人简介'}</Text>

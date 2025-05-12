@@ -108,9 +108,11 @@ CREATE TABLE podcast (
     favorites_count INTEGER DEFAULT 0,               -- 收藏次数
     is_downloadable BOOLEAN DEFAULT TRUE,            -- 是否可下载
     show_ai_attribution BOOLEAN DEFAULT TRUE,        -- 是否显示AI标识
+    is_deleted BOOLEAN DEFAULT TRUE,                 -- 是否已删除标识
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- 创建时间
     published_at TIMESTAMPTZ,                        -- 发布时间
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- 更新时间
+    deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- 删除时间
     
     CONSTRAINT status_check CHECK (publish_status IN ('draft', 'published', 'private'))
 );
@@ -295,17 +297,18 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 创建索引以提高查询性能
-CREATE INDEX idx_podcast_user_id ON podcast(user_id);
-CREATE INDEX idx_podcast_host_id ON podcast(host_id);
-CREATE INDEX idx_podcast_topic_id ON podcast(topic_id);
-CREATE INDEX idx_message_podcast_id ON podcast_message(podcast_id);
-CREATE INDEX idx_chapter_podcast_id ON podcast_chapter(podcast_id);
-CREATE INDEX idx_note_user_id ON podcast_note(user_id);
-CREATE INDEX idx_note_podcast_id ON podcast_note(podcast_id);
-CREATE INDEX idx_bookmark_user_id ON podcast_bookmark(user_id);
-CREATE INDEX idx_bookmark_podcast_id ON podcast_bookmark(podcast_id);
-CREATE INDEX idx_favorite_user_id ON podcast_favorite(user_id);
-CREATE INDEX idx_favorite_podcast_id ON podcast_favorite(podcast_id);
-CREATE INDEX idx_play_history_user_id ON podcast_play_history(user_id);
-CREATE INDEX idx_play_history_podcast_id ON podcast_play_history(podcast_id);
-CREATE INDEX idx_share_podcast_id ON podcast_share(podcast_id); 
+CREATE INDEX IF NOT EXISTS idx_podcast_user_id ON podcast(user_id);
+CREATE INDEX IF NOT EXISTS idx_podcast_host_id ON podcast(host_id);
+CREATE INDEX IF NOT EXISTS idx_podcast_topic_id ON podcast(topic_id);
+CREATE INDEX IF NOT EXISTS idx_message_podcast_id ON podcast_message(podcast_id);
+CREATE INDEX IF NOT EXISTS idx_chapter_podcast_id ON podcast_chapter(podcast_id);
+CREATE INDEX IF NOT EXISTS idx_note_user_id ON podcast_note(user_id);
+CREATE INDEX IF NOT EXISTS idx_note_podcast_id ON podcast_note(podcast_id);
+CREATE INDEX IF NOT EXISTS idx_bookmark_user_id ON podcast_bookmark(user_id);
+CREATE INDEX IF NOT EXISTS idx_bookmark_podcast_id ON podcast_bookmark(podcast_id);
+CREATE INDEX IF NOT EXISTS idx_favorite_user_id ON podcast_favorite(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorite_podcast_id ON podcast_favorite(podcast_id);
+CREATE INDEX IF NOT EXISTS idx_play_history_user_id ON podcast_play_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_play_history_podcast_id ON podcast_play_history(podcast_id);
+CREATE INDEX IF NOT EXISTS idx_share_podcast_id ON podcast_share(podcast_id); 
+CREATE INDEX IF NOT EXISTS idx_podcast_is_deleted ON podcast(is_deleted);

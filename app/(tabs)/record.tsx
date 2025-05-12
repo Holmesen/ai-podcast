@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomTopicButton } from '../../components/CustomTopicButton';
 import { SearchBar } from '../../components/SearchBar';
 import { TopicSelectionItem } from '../../components/TopicSelectionItem';
 import { PodcastService } from '../../services/podcast-service';
 import { TopicService } from '../../services/topic-service';
+import { DEFAULT_BLURHASH } from '../../utils/image-utils';
 
 interface TopicItem {
   id: string;
@@ -26,6 +28,7 @@ interface OngoingTopic {
   lastMessageTime: string;
   messageCount: number;
   podcastId?: string;
+  deleted_at?: string; // 软删除时间
 }
 
 export default function RecordTab() {
@@ -35,6 +38,11 @@ export default function RecordTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [filteredTopics, setFilteredTopics] = useState<TopicItem[]>([]);
+
+  // 回收站相关状态
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [deletedPodcasts, setDeletedPodcasts] = useState<OngoingTopic[]>([]);
+  const [isRecycleBinLoading, setIsRecycleBinLoading] = useState(false);
 
   // 加载话题数据
   useEffect(() => {
@@ -181,6 +189,120 @@ export default function RecordTab() {
     }
   }, [topics]);
 
+  // 添加加载回收站内容的useEffect
+  useEffect(() => {
+    // 只有在回收站打开时才加载
+    if (showRecycleBin) {
+      loadDeletedPodcasts();
+    }
+  }, [showRecycleBin]);
+
+  // 加载已删除的播客
+  const loadDeletedPodcasts = async () => {
+    setIsRecycleBinLoading(true);
+    try {
+      // 获取用户ID
+      const userId = await SecureStore.getItemAsync('userId');
+      if (!userId) {
+        setIsRecycleBinLoading(false);
+        return;
+      }
+
+      // 获取已删除的播客
+      const deletedPoddcastsData = await PodcastService.getDeletedPodcasts(userId);
+
+      // 转换为OngoingTopic格式
+      const formattedPodcasts: OngoingTopic[] = deletedPoddcastsData.map((podcast) => ({
+        podcastId: podcast.id,
+        topicId: podcast.topic_id || '',
+        topicTitle: podcast.title,
+        topicDescription: podcast.description || '',
+        imageUrl:
+          podcast.cover_image_url ||
+          'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
+        lastMessageTime: new Date(podcast.deleted_at || podcast.updated_at).toLocaleDateString(),
+        messageCount: 0, // 这里可能需要通过额外API获取消息数
+        deleted_at: podcast.deleted_at,
+      }));
+
+      setDeletedPodcasts(formattedPodcasts);
+    } catch (error) {
+      console.error('加载已删除播客失败:', error);
+    } finally {
+      setIsRecycleBinLoading(false);
+    }
+  };
+
+  // 恢复已删除的播客
+  const handleRestorePodcast = async (topic: OngoingTopic) => {
+    if (!topic.podcastId) return;
+
+    try {
+      const success = await PodcastService.restorePodcast(topic.podcastId);
+
+      if (success) {
+        // 从删除列表中移除
+        setDeletedPodcasts((prev) => prev.filter((p) => p.podcastId !== topic.podcastId));
+
+        // 添加到进行中列表
+        const restoredTopic: OngoingTopic = {
+          ...topic,
+          lastMessageTime: new Date().toLocaleDateString(),
+        };
+
+        const updatedOngoingTopics = [restoredTopic, ...ongoingTopics];
+        setOngoingTopics(updatedOngoingTopics);
+
+        // 更新本地存储
+        await AsyncStorage.setItem('ongoingTopics', JSON.stringify(updatedOngoingTopics));
+
+        Alert.alert('恢复成功', `"${topic.topicTitle}"已恢复`);
+      } else {
+        Alert.alert('恢复失败', '无法恢复该播客，请稍后重试');
+      }
+    } catch (error) {
+      console.error('恢复播客出错:', error);
+      Alert.alert('恢复失败', '发生错误，请稍后重试');
+    }
+  };
+
+  // 永久删除播客
+  const handlePermanentDelete = async (topic: OngoingTopic) => {
+    if (!topic.podcastId) return;
+
+    Alert.alert(
+      '永久删除',
+      `确定要永久删除"${topic.topicTitle}"吗？此操作无法撤销。`,
+      [
+        {
+          text: '取消',
+          style: 'cancel',
+        },
+        {
+          text: '永久删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const success = await PodcastService.deletePodcast(topic.podcastId!);
+
+              if (success) {
+                // 从删除列表中移除
+                setDeletedPodcasts((prev) => prev.filter((p) => p.podcastId !== topic.podcastId));
+                Alert.alert('删除成功', '播客已永久删除');
+              } else {
+                Alert.alert('删除失败', '无法删除该播客，请稍后重试');
+              }
+            } catch (error) {
+              console.error('永久删除播客出错:', error);
+              Alert.alert('删除失败', '发生错误，请稍后重试');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   // 创建自定义话题
   const handleCustomTopic = () => {
     // 实现自定义话题功能
@@ -228,6 +350,65 @@ export default function RecordTab() {
     }
   };
 
+  // 删除播客
+  const handleDeletePodcast = async (topic: OngoingTopic) => {
+    if (!topic.podcastId) {
+      // 如果没有podcastId，这是一个本地记录，直接从本地存储中删除
+      const updatedTopics = ongoingTopics.filter((t) =>
+        topic.podcastId ? t.podcastId !== topic.podcastId : t.topicId !== topic.topicId
+      );
+      setOngoingTopics(updatedTopics);
+      await AsyncStorage.setItem('ongoingTopics', JSON.stringify(updatedTopics));
+      return;
+    }
+
+    // 显示确认对话框
+    Alert.alert(
+      '移到回收站',
+      `确定要将"${topic.topicTitle}"移到回收站吗？您可以稍后从回收站恢复。`,
+      [
+        {
+          text: '取消',
+          style: 'cancel',
+        },
+        {
+          text: '移到回收站',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // 调用服务软删除播客
+              const success = await PodcastService.softDeletePodcast(topic.podcastId!);
+
+              if (success) {
+                // 从状态中移除
+                const updatedTopics = ongoingTopics.filter((t) => t.podcastId !== topic.podcastId);
+                setOngoingTopics(updatedTopics);
+
+                // 更新本地存储
+                await AsyncStorage.setItem('ongoingTopics', JSON.stringify(updatedTopics));
+
+                // 如果当前选中的话题被删除，也需要清理
+                const currentTopic = await AsyncStorage.getItem('selectedTopic');
+                if (currentTopic) {
+                  const parsedTopic = JSON.parse(currentTopic);
+                  if (parsedTopic.podcastId === topic.podcastId) {
+                    await AsyncStorage.removeItem('selectedTopic');
+                  }
+                }
+              } else {
+                Alert.alert('操作失败', '无法移动该播客到回收站，请稍后重试。');
+              }
+            } catch (error) {
+              console.error('删除播客出错:', error);
+              Alert.alert('操作失败', '发生错误，请稍后重试。');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   // 继续进行中的对话
   const continueConversation = async (topic: OngoingTopic) => {
     try {
@@ -252,20 +433,62 @@ export default function RecordTab() {
 
   // 渲染进行中的话题项
   const renderOngoingTopicItem = (topic: OngoingTopic) => (
-    <TouchableOpacity
-      key={topic.podcastId || topic.topicId}
-      style={styles.ongoingTopicItem}
-      onPress={() => continueConversation(topic)}
-    >
-      <Image source={{ uri: topic.imageUrl }} style={styles.ongoingTopicImage} />
-      <View style={styles.ongoingTopicContent}>
-        <Text style={styles.ongoingTopicTitle}>{topic.topicTitle}</Text>
-        <Text style={styles.ongoingTopicMeta}>
-          上次更新: {topic.lastMessageTime} · {topic.messageCount} 条消息
-        </Text>
+    <View key={topic.podcastId || topic.topicId} style={styles.ongoingTopicContainer}>
+      <TouchableOpacity style={styles.ongoingTopicItem} onPress={() => continueConversation(topic)}>
+        <Image
+          source={{ uri: topic.imageUrl }}
+          style={styles.ongoingTopicImage}
+          contentFit="cover"
+          placeholder={{ blurhash: DEFAULT_BLURHASH }}
+          transition={300}
+          cachePolicy="memory-disk"
+        />
+        <View style={styles.ongoingTopicContent}>
+          <Text style={styles.ongoingTopicTitle}>{topic.topicTitle}</Text>
+          <Text style={styles.ongoingTopicMeta}>
+            上次更新: {topic.lastMessageTime} · {topic.messageCount} 条消息
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePodcast(topic)}>
+        <Ionicons name="trash-outline" size={20} color="#ef4444" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  // 渲染回收站中的播客项
+  const renderDeletedPodcastItem = (topic: OngoingTopic) => (
+    <View key={topic.podcastId} style={styles.ongoingTopicContainer}>
+      <View style={styles.ongoingTopicItem}>
+        <Image
+          source={{ uri: topic.imageUrl }}
+          style={styles.ongoingTopicImage}
+          contentFit="cover"
+          placeholder={{ blurhash: DEFAULT_BLURHASH }}
+          transition={300}
+          cachePolicy="memory-disk"
+        />
+        <View style={styles.ongoingTopicContent}>
+          <Text style={styles.ongoingTopicTitle}>{topic.topicTitle}</Text>
+          <Text style={styles.ongoingTopicMeta}>删除于: {topic.lastMessageTime}</Text>
+        </View>
+        <View style={styles.deletedItemActions}>
+          <TouchableOpacity
+            style={[styles.actionIconButton, styles.restoreButton]}
+            onPress={() => handleRestorePodcast(topic)}
+          >
+            <Ionicons name="refresh-outline" size={18} color="#3b82f6" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionIconButton, styles.permanentDeleteButton]}
+            onPress={() => handlePermanentDelete(topic)}
+          >
+            <Ionicons name="trash-outline" size={18} color="#ef4444" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-    </TouchableOpacity>
+    </View>
   );
 
   // 获取默认话题（当API加载失败时使用）
@@ -293,7 +516,7 @@ export default function RecordTab() {
     },
   ];
 
-  // 如果正在加载数据，显示加载指示器
+  // 渲染加载中状态
   if (isLoading && topics.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -305,65 +528,103 @@ export default function RecordTab() {
     );
   }
 
+  // 切换回收站显示状态
+  const toggleRecycleBin = () => {
+    setShowRecycleBin(!showRecycleBin);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.pageTitle}>录制播客</Text>
+        <TouchableOpacity style={styles.recycleBinButton} onPress={toggleRecycleBin}>
+          <Ionicons name={showRecycleBin ? 'albums-outline' : 'trash-outline'} size={22} color="#6b7280" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollContainer}>
-        {/* 正在进行的话题区域 */}
-        {ongoingTopics.length > 0 && (
-          <View style={styles.ongoingTopicsSection}>
-            <Text style={styles.sectionTitle}>进行中的播客</Text>
-            <View style={styles.ongoingTopicsList}>{ongoingTopics.map(renderOngoingTopicItem)}</View>
+        {/* 回收站内容 */}
+        {showRecycleBin ? (
+          <View style={styles.recycleBinSection}>
+            <View style={styles.recycleBinHeader}>
+              <Text style={styles.sectionTitle}>回收站</Text>
+              <TouchableOpacity onPress={toggleRecycleBin}>
+                <Text style={styles.backButton}>返回</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isRecycleBinLoading ? (
+              <View style={styles.recycleBinLoadingContainer}>
+                <ActivityIndicator size="small" color="#6366f1" />
+                <Text style={styles.recycleBinLoadingText}>加载中...</Text>
+              </View>
+            ) : deletedPodcasts.length > 0 ? (
+              <View style={styles.ongoingTopicsList}>{deletedPodcasts.map(renderDeletedPodcastItem)}</View>
+            ) : (
+              <View style={styles.emptyRecycleBin}>
+                <Ionicons name="trash-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyRecycleBinText}>回收站为空</Text>
+              </View>
+            )}
           </View>
-        )}
+        ) : (
+          <>
+            {/* 正在进行的话题区域 */}
+            {ongoingTopics.length > 0 && (
+              <View style={styles.ongoingTopicsSection}>
+                <Text style={styles.sectionTitle}>进行中的播客</Text>
+                <View style={styles.ongoingTopicsList}>{ongoingTopics.map(renderOngoingTopicItem)}</View>
+              </View>
+            )}
 
-        {/* 话题选择区域 */}
-        <View style={styles.newTopicSection}>
-          <Text style={styles.sectionTitle}>开始新的播客</Text>
-          <Text style={styles.sectionDesc}>
-            选择一个你感兴趣的话题，AI 主持人将围绕这个主题与你深入对话，探讨独特见解。
-          </Text>
+            {/* 话题选择区域 */}
+            <View style={styles.newTopicSection}>
+              <Text style={styles.sectionTitle}>开始新的播客</Text>
+              <Text style={styles.sectionDesc}>
+                选择一个你感兴趣的话题，AI 主持人将围绕这个主题与你深入对话，探讨独特见解。
+              </Text>
 
-          <SearchBar placeholder="搜索更多话题" value={searchQuery} onChangeText={setSearchQuery} />
+              <SearchBar placeholder="搜索更多话题" value={searchQuery} onChangeText={setSearchQuery} />
 
-          {filteredTopics.length > 0 ? (
-            <View style={styles.topicGrid}>
-              {filteredTopics.map((topic) => (
-                <View style={styles.topicGridItem} key={topic.id}>
-                  <TopicSelectionItem
-                    title={topic.title}
-                    description={topic.description}
-                    imageUrl={topic.imageUrl}
-                    isSelected={selectedTopicId === topic.id}
-                    onSelect={() => setSelectedTopicId(topic.id)}
-                  />
+              {filteredTopics.length > 0 ? (
+                <View style={styles.topicGrid}>
+                  {filteredTopics.map((topic) => (
+                    <View style={styles.topicGridItem} key={topic.id}>
+                      <TopicSelectionItem
+                        title={topic.title}
+                        description={topic.description}
+                        imageUrl={topic.imageUrl}
+                        isSelected={selectedTopicId === topic.id}
+                        onSelect={() => setSelectedTopicId(topic.id)}
+                      />
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.noResultsContainer}>
-              <Ionicons name="search-outline" size={48} color="#d1d5db" />
-              <Text style={styles.noResultsText}>未找到相关话题</Text>
-              <Text style={styles.noResultsSubText}>请尝试其他关键词或创建自定义话题</Text>
-            </View>
-          )}
+              ) : (
+                <View style={styles.noResultsContainer}>
+                  <Ionicons name="search-outline" size={48} color="#d1d5db" />
+                  <Text style={styles.noResultsText}>未找到相关话题</Text>
+                  <Text style={styles.noResultsSubText}>请尝试其他关键词或创建自定义话题</Text>
+                </View>
+              )}
 
-          <CustomTopicButton onPress={handleCustomTopic} />
-        </View>
+              <CustomTopicButton onPress={handleCustomTopic} />
+            </View>
+          </>
+        )}
       </ScrollView>
 
-      <View style={styles.actionFooter}>
-        <TouchableOpacity
-          style={[styles.actionButton, !selectedTopicId && styles.actionButtonDisabled]}
-          onPress={startNewConversation}
-          disabled={!selectedTopicId}
-        >
-          <Text style={styles.actionButtonText}>开始新对话</Text>
-        </TouchableOpacity>
-      </View>
+      {!showRecycleBin && (
+        <View style={styles.actionFooter}>
+          <TouchableOpacity
+            style={[styles.actionButton, !selectedTopicId && styles.actionButtonDisabled]}
+            onPress={startNewConversation}
+            disabled={!selectedTopicId}
+          >
+            <Text style={styles.actionButtonText}>开始新对话</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -384,6 +645,9 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -417,13 +681,16 @@ const styles = StyleSheet.create({
   ongoingTopicsList: {
     paddingHorizontal: 16,
   },
+  ongoingTopicContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
   ongoingTopicItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -504,5 +771,78 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 3,
+    zIndex: 2,
+  },
+  recycleBinButton: {
+    padding: 8,
+  },
+  recycleBinSection: {
+    flex: 1,
+  },
+  recycleBinHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 16,
+  },
+  backButton: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  recycleBinLoadingContainer: {
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recycleBinLoadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  emptyRecycleBin: {
+    padding: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyRecycleBinText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  deletedItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  restoreButton: {
+    backgroundColor: '#eff6ff',
+  },
+  permanentDeleteButton: {
+    backgroundColor: '#fef2f2',
   },
 });

@@ -1,5 +1,7 @@
+import { Image } from 'expo-image';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { DEFAULT_BLURHASH } from '../utils/image-utils';
 
 interface TopicCardProps {
   title: string;
@@ -11,7 +13,14 @@ interface TopicCardProps {
 export function TopicCard({ title, episodeCount, imageUrl, onPress }: TopicCardProps) {
   return (
     <TouchableOpacity style={styles.topicCard} onPress={onPress} activeOpacity={0.7}>
-      <Image source={{ uri: imageUrl }} style={styles.topicCardImg} resizeMode="cover" />
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.topicCardImg}
+        contentFit="cover"
+        placeholder={{ blurhash: DEFAULT_BLURHASH }}
+        transition={300}
+        cachePolicy="memory-disk"
+      />
       <View style={styles.topicCardContent}>
         <Text style={styles.topicCardTitle}>{title}</Text>
         <Text style={styles.topicCardEpisodes}>{episodeCount}</Text>

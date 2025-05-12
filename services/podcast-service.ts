@@ -23,6 +23,8 @@ export interface Podcast {
   published_at?: string;
   updated_at: string;
   date?: string; // 格式化后的显示日期(非数据库字段)
+  is_deleted?: boolean; // 是否已被软删除
+  deleted_at?: string; // 软删除时间
 
   // 以下字段用于前端展示，非数据库直接字段
   hostName?: string; // 存储主持人名称(关联 podcast_host 表)
@@ -85,12 +87,13 @@ export const PodcastService = {
    * @param userId 用户ID，如果不提供则获取当前登录用户的播客
    * @param limit 限制返回的数量
    * @param status 播客状态筛选
-   * @param enableDelay 是否启用延迟以模拟网络加载（仅用于开发环境）
+   * @param includeDeleted 是否包含已删除的播客，默认不包含
    */
   async getUserPodcasts(
     userId?: string,
     limit: number = 20,
-    status: 'published' | 'draft' | 'private' | 'all' = 'published'
+    status: 'published' | 'draft' | 'private' | 'all' = 'published',
+    includeDeleted: boolean = false
   ): Promise<Podcast[]> {
     try {
       if (!userId) {
@@ -113,6 +116,11 @@ export const PodcastService = {
 
       if (status !== 'all') {
         query = query.eq('publish_status', status);
+      }
+
+      // 默认不包含已删除的播客，除非明确要求
+      if (!includeDeleted) {
+        query = query.eq('is_deleted', false);
       }
 
       if (limit > 0) {
@@ -718,6 +726,132 @@ export const PodcastService = {
       return true;
     } catch (error) {
       console.error('创建播客总结错误:', error);
+      return false;
+    }
+  },
+
+  /**
+   * 软删除播客
+   * @param podcastId 要删除的播客ID
+   * @returns 是否成功删除
+   */
+  async softDeletePodcast(podcastId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('podcast')
+        .update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString(),
+        })
+        .eq('id', podcastId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('软删除播客错误:', error);
+      return false;
+    }
+  },
+
+  /**
+   * 恢复已删除的播客
+   * @param podcastId 要恢复的播客ID
+   * @returns 是否成功恢复
+   */
+  async restorePodcast(podcastId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('podcast')
+        .update({
+          is_deleted: false,
+          deleted_at: null,
+        })
+        .eq('id', podcastId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('恢复播客错误:', error);
+      return false;
+    }
+  },
+
+  /**
+   * 获取回收站中的播客
+   * @param userId 用户ID，如果不提供则获取当前登录用户的已删除播客
+   * @param limit 限制返回的数量
+   * @returns 已删除的播客列表
+   */
+  async getDeletedPodcasts(userId?: string, limit: number = 20): Promise<Podcast[]> {
+    try {
+      if (!userId) {
+        const storedUserId = await SecureStore.getItemAsync('userId');
+        if (!storedUserId) return [];
+        userId = storedUserId;
+      }
+
+      // 获取已删除的播客
+      let query = supabase
+        .from('podcast')
+        .select(
+          `
+          *,
+          host:host_id(name)
+        `
+        )
+        .eq('user_id', userId)
+        .eq('is_deleted', true)
+        .order('deleted_at', { ascending: false });
+
+      if (limit > 0) {
+        query = query.limit(limit);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // 格式化数据
+      return data.map((podcast) => formatPodcast(podcast));
+    } catch (error) {
+      console.error('获取已删除播客错误:', error);
+      return [];
+    }
+  },
+
+  /**
+   * 永久删除播客及其相关数据
+   * 该方法将从数据库中完全删除播客记录，请谨慎使用
+   * @param podcastId 要删除的播客ID
+   * @returns 是否成功删除
+   */
+  async deletePodcast(podcastId: string): Promise<boolean> {
+    try {
+      // 删除顺序很重要，首先删除依赖此播客ID的相关数据
+
+      // 1. 删除播客消息
+      const { error: messagesError } = await supabase.from('podcast_message').delete().eq('podcast_id', podcastId);
+
+      if (messagesError) throw messagesError;
+
+      // 2. 删除播客章节
+      const { error: chaptersError } = await supabase.from('podcast_chapter').delete().eq('podcast_id', podcastId);
+
+      if (chaptersError) throw chaptersError;
+
+      // 3. 删除播客总结
+      const { error: summaryError } = await supabase.from('podcast_summary').delete().eq('podcast_id', podcastId);
+
+      if (summaryError) throw summaryError;
+
+      // 4. 最后删除播客本身
+      const { error: podcastError } = await supabase.from('podcast').delete().eq('id', podcastId);
+
+      if (podcastError) throw podcastError;
+
+      return true;
+    } catch (error) {
+      console.error('永久删除播客错误:', error);
       return false;
     }
   },

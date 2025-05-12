@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { DEFAULT_BLURHASH } from '../utils/image-utils';
 import { colors, shadows } from './theme';
 
 interface TopicSelectionItemProps {
@@ -24,7 +26,14 @@ export function TopicSelectionItem({
       onPress={onSelect}
       activeOpacity={0.7}
     >
-      <Image source={{ uri: imageUrl }} style={styles.topicItemImg} resizeMode="cover" />
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.topicItemImg}
+        contentFit="cover"
+        placeholder={{ blurhash: DEFAULT_BLURHASH }}
+        transition={300}
+        cachePolicy="memory-disk"
+      />
       {isSelected && (
         <View style={styles.topicCheck}>
           <Ionicons name="checkmark" size={12} color="white" />

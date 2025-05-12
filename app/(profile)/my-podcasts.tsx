@@ -114,7 +114,7 @@ export default function MyPodcasts() {
   // 导航到播客详情
   const navigateToPodcastDetails = (podcastId: string) => {
     router.push({
-      pathname: `/screens/podcast-details`,
+      pathname: '/(podcast)/details/[id]',
       params: { id: podcastId },
     });
   };

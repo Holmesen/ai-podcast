@@ -84,7 +84,7 @@ export default function Home() {
 
   // 导航到播客详情页
   const navigateToPodcastDetails = (podcastId: string) => {
-    router.push(`/screens/podcast-details?id=${podcastId}`);
+    router.push(`/(podcast)/details/${podcastId}`);
   };
 
   return (

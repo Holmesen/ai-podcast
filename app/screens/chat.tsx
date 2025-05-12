@@ -204,11 +204,21 @@ export default function Chat() {
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>对话模式</Text>
-        <Link href="/screens/summary" asChild>
-          <TouchableOpacity>
-            <Ionicons name="list-outline" size={24} color="#111827" />
-          </TouchableOpacity>
-        </Link>
+        {podcastId && (
+          <Link
+            href={{
+              pathname: '/(podcast)/summary/[id]',
+              params: {
+                id: podcastId,
+              },
+            }}
+            asChild
+          >
+            <TouchableOpacity>
+              <Ionicons name="list-outline" size={24} color="#111827" />
+            </TouchableOpacity>
+          </Link>
+        )}
       </View>
 
       {/* 主持人信息 */}
