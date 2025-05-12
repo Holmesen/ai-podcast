@@ -112,7 +112,7 @@ CREATE TABLE podcast (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- 创建时间
     published_at TIMESTAMPTZ,                        -- 发布时间
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- 更新时间
-    deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- 删除时间
+    deleted_at TIMESTAMPTZ,                          -- 删除时间
     
     CONSTRAINT status_check CHECK (publish_status IN ('draft', 'published', 'private'))
 );

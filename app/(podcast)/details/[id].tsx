@@ -2,8 +2,8 @@ import { Podcast, PodcastChapter, PodcastService, PodcastSummary } from '@/servi
 import { DEFAULT_BLURHASH } from '@/utils/image-utils';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,31 +18,35 @@ export default function PodcastDetails() {
   const [summary, setSummary] = useState<PodcastSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 加载播客详情
-  useEffect(() => {
-    async function loadPodcastDetails() {
-      if (!id) {
-        setError('未找到播客ID');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const podcastData = await PodcastService.getPodcastDetails(id as string);
-        setPodcast(podcastData.podcast);
-        setChapters(podcastData.chapters);
-        // setMessages(podcastData.messages);
-        setSummary(podcastData.summary);
-      } catch (err) {
-        console.error('加载播客详情失败:', err);
-        setError('无法加载播客详情，请稍后重试');
-      } finally {
-        setIsLoading(false);
-      }
+  // 加载播客详情的函数
+  const loadPodcastDetails = useCallback(async () => {
+    if (!id) {
+      setError('未找到播客ID');
+      setIsLoading(false);
+      return;
     }
 
-    loadPodcastDetails();
+    setIsLoading(true);
+    try {
+      const podcastData = await PodcastService.getPodcastDetails(id as string);
+      setPodcast(podcastData.podcast);
+      setChapters(podcastData.chapters);
+      // setMessages(podcastData.messages);
+      setSummary(podcastData.summary);
+    } catch (err) {
+      console.error('加载播客详情失败:', err);
+      setError('无法加载播客详情，请稍后重试');
+    } finally {
+      setIsLoading(false);
+    }
   }, [id]);
+
+  // 添加useFocusEffect以在页面获得焦点时刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      loadPodcastDetails();
+    }, [loadPodcastDetails])
+  );
 
   // 格式化标签（从数据库中的字符串数组）
   const formatTags = (tags?: string[] | null) => {
@@ -130,9 +134,25 @@ export default function PodcastDetails() {
         }}
       />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#111827" />
+          </TouchableOpacity>
+
+          {/* 添加编辑按钮 */}
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() =>
+              router.push({
+                pathname: '/(podcast)/edit/[id]' as any,
+                params: { id: podcast.id },
+              })
+            }
+          >
+            <Ionicons name="pencil-outline" size={20} color="#6366f1" />
+            <Text style={styles.editButtonText}>编辑</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.podcastHeader}>
           <Image
@@ -278,7 +298,20 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    marginBottom: 16,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  editButtonText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   podcastHeader: {
     flexDirection: 'row',
@@ -418,5 +451,12 @@ const styles = StyleSheet.create({
   highlightContent: {
     color: '#4b5563',
     fontSize: 14,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginBottom: 16,
   },
 });

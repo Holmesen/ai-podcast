@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, router } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StreamingChatInterface } from '../../components/StreamingChatInterface';
@@ -60,35 +60,59 @@ export default function Chat() {
     loadSelectedTopic();
   }, []);
 
+  // 添加useFocusEffect以在页面获得焦点时刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      if (podcastId) {
+        loadHostInfo();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [podcastId])
+  );
+
+  // 加载主持人信息
+  const loadHostInfo = async () => {
+    if (podcastId) {
+      setIsLoading(true);
+      try {
+        // 获取播客详情，包括主持人信息
+        const { podcast } = await PodcastService.getPodcastDetails(podcastId);
+
+        if (podcast && podcast.host_id) {
+          // 获取主持人详情
+          const hosts = await PodcastService.getHosts();
+          const currentHost = hosts.find((h) => h.id === podcast.host_id);
+
+          if (currentHost) {
+            setHost(currentHost);
+          }
+
+          // 更新topicInfo中的标题和描述，确保UI显示最新信息
+          if (topicInfo) {
+            const updatedTopicInfo = {
+              ...topicInfo,
+              topicTitle: podcast.title,
+              topicDescription: podcast.description || topicInfo.topicDescription,
+            };
+            setTopicInfo(updatedTopicInfo);
+            // 保存更新后的话题信息到AsyncStorage
+            await AsyncStorage.setItem('selectedTopic', JSON.stringify(updatedTopicInfo));
+          }
+        }
+      } catch (error) {
+        console.error('加载主持人信息失败:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
   // 加载主持人信息
   useEffect(() => {
-    const loadHostInfo = async () => {
-      if (podcastId) {
-        setIsLoading(true);
-        try {
-          // 获取播客详情，包括主持人信息
-          const { podcast } = await PodcastService.getPodcastDetails(podcastId);
-
-          if (podcast && podcast.host_id) {
-            // 获取主持人详情
-            const hosts = await PodcastService.getHosts();
-            const currentHost = hosts.find((h) => h.id === podcast.host_id);
-
-            if (currentHost) {
-              setHost(currentHost);
-            }
-          }
-        } catch (error) {
-          console.error('加载主持人信息失败:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
     if (podcastId) {
       loadHostInfo();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [podcastId]);
 
   // 创建新播客
@@ -207,7 +231,7 @@ export default function Chat() {
         {podcastId && (
           <Link
             href={{
-              pathname: '/(podcast)/summary/[id]',
+              pathname: '/(podcast)/edit/[id]' as any,
               params: {
                 id: podcastId,
               },
@@ -215,7 +239,7 @@ export default function Chat() {
             asChild
           >
             <TouchableOpacity>
-              <Ionicons name="list-outline" size={24} color="#111827" />
+              <Ionicons name="settings-outline" size={24} color="#111827" />
             </TouchableOpacity>
           </Link>
         )}
