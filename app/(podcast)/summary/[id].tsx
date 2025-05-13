@@ -1,3 +1,4 @@
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { Podcast, PodcastService } from '@/services/podcast-service';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -73,7 +74,7 @@ const TipItem = ({ content, key }: { content: string; key: number }) => {
       <View style={styles.tipItem}>
         <Text style={styles.tipAction}>{tip.action}</Text>
         {tip.steps.map((step: string, index: number) => (
-          <View key={index} style={styles.tipStep}>
+          <View key={`${key}-${index}`} style={styles.tipStep}>
             <Text style={styles.tipStepNumber}>{index + 1}</Text>
             <Text style={styles.tipStepText}>{step}</Text>
           </View>
@@ -232,7 +233,7 @@ export default function Summary() {
               <Text style={styles.sectionTitle}>整体摘要</Text>
             </View>
             <View style={styles.sectionContent}>
-              <Text style={styles.summaryText}>{summary.summary_text}</Text>
+              <MarkdownRenderer content={summary.summary_text} />
             </View>
           </View>
         )}

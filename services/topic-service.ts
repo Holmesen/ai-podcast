@@ -1,3 +1,4 @@
+import { promptService, TopicSuggestion } from './prompt-service';
 import { supabase } from './supabase';
 
 export interface Topic {
@@ -117,6 +118,73 @@ export const TopicService = {
     } catch (error) {
       console.error('搜索话题失败:', error);
       return [];
+    }
+  },
+
+  /**
+   * 根据用户兴趣生成话题建议
+   * @param interests 用户兴趣关键词，逗号分隔
+   * @param limit 返回的话题数量，默认为5
+   */
+  async generateTopicSuggestions(interests: string, limit: number = 5): Promise<TopicSuggestion[]> {
+    try {
+      // 使用promptService生成话题建议
+      const suggestions = await promptService.generateTopicSuggestions(interests);
+
+      // 限制返回数量
+      return suggestions.slice(0, limit);
+    } catch (error) {
+      console.error('生成话题建议失败:', error);
+      return [];
+    }
+  },
+
+  /**
+   * 拓展指定话题的讨论方向
+   * @param topic 要拓展的话题
+   */
+  async extendTopic(topic: string): Promise<{
+    deepeningQuestions: string[];
+    perspectives: string[];
+    examples: string[];
+  }> {
+    try {
+      // 使用promptService拓展话题
+      return await promptService.extendTopic(topic);
+    } catch (error) {
+      console.error('拓展话题失败:', error);
+      return {
+        deepeningQuestions: [],
+        perspectives: [],
+        examples: [],
+      };
+    }
+  },
+
+  /**
+   * 审核话题内容
+   * @param topicTitle 话题标题
+   * @param topicDescription 话题描述
+   */
+  async reviewTopicContent(
+    topicTitle: string,
+    topicDescription: string
+  ): Promise<{
+    approved: boolean;
+    concerns: string[];
+    suggestions: string[];
+  }> {
+    try {
+      const content = `标题: ${topicTitle}\n描述: ${topicDescription}`;
+      // 使用promptService审核内容
+      return await promptService.reviewContent(content);
+    } catch (error) {
+      console.error('话题内容审核失败:', error);
+      return {
+        approved: true, // 默认通过，避免阻塞用户操作
+        concerns: [],
+        suggestions: [],
+      };
     }
   },
 };

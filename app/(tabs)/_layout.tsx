@@ -49,8 +49,8 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="record"
           options={{
-            title: '录制',
-            tabBarIcon: ({ size, color }) => <Ionicons name="mic" size={size} color={color} />,
+            title: '对话',
+            tabBarIcon: ({ size, color }) => <Ionicons name="chatbubbles" size={size} color={color} />,
           }}
         />
         <Tabs.Screen

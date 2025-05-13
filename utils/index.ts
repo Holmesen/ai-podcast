@@ -42,3 +42,6 @@ export const generateAPIUrl = (relativePath: string) => {
     return `http://localhost:8081${relativePath.startsWith('/') ? relativePath : `/${relativePath}`}`;
   }
 };
+
+// 导出提示词管理模块
+export * from './prompts';

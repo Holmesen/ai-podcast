@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { AIService } from './ai-service';
+import { PodcastSummaryResult, promptService } from './prompt-service';
 import { supabase } from './supabase';
 
 export interface Podcast {
@@ -595,102 +596,27 @@ export const PodcastService = {
    */
   async createPodcastSummary(podcastId: string, aiService: AIService): Promise<boolean> {
     try {
-      // 获取播客详情和消息
-      const { podcast, messages } = await this.getPodcastDetails(podcastId);
+      // 获取播客对话内容
+      const { data: messages, error: messagesError } = await supabase
+        .from('podcast_message')
+        .select('*')
+        .eq('podcast_id', podcastId)
+        .order('timestamp', { ascending: true });
 
-      if (!podcast || messages.length === 0) {
-        throw new Error('没有足够的对话内容生成总结');
+      if (messagesError) throw messagesError;
+      if (!messages || messages.length === 0) {
+        throw new Error('找不到要总结的消息');
       }
 
-      // 获取主持人信息
-      const { data: host } = await supabase.from('podcast_host').select('name').eq('id', podcast.host_id).single();
-
-      const hostName = host?.name || 'AI主持人';
-
-      // 提取对话内容
-      const conversationText = messages
-        .map((msg) => {
-          const speaker = msg.speaker_type === 'host' ? hostName : '用户';
-          return `${speaker}: ${msg.content}`;
-        })
+      // 将消息格式化为文本格式
+      const formattedContent = messages
+        .map((msg) => `${msg.speaker_type === 'host' ? '主持人' : '用户'}: ${msg.content}`)
         .join('\n\n');
 
-      // 生成关键点提示
-      const keyPointsPrompt = `
-        请从以下对话中提取5-7个关键观点，每个观点用简短的一句话表示：
-        
-        ${conversationText}
-        
-        请以JSON数组格式返回结果，仅返回数组，不要有任何前缀或后缀。
-      `;
+      // 使用promptService生成播客总结
+      const summaryResult: PodcastSummaryResult = await promptService.generatePodcastSummary(formattedContent);
 
-      // 生成精彩语录提示
-      const quotesPrompt = `
-        请从以下对话中提取3-5个最有价值、最有见解的语录，保留原话：
-        
-        ${conversationText}
-        
-        请以JSON数组格式返回结果，仅返回数组，不要有任何前缀或后缀。
-      `;
-
-      // 生成实用建议提示
-      const tipsPrompt = `
-        请基于以下对话内容，提供3-5条实用的建议或行动步骤：
-        
-        ${conversationText}
-        
-        请以JSON数组格式返回结果，仅返回数组，不要有任何前缀或后缀。
-      `;
-
-      // 生成总结文本提示
-      const summaryPrompt = `
-        请对以下对话进行200-300字的简明总结，提炼主要内容和价值：
-        
-        ${conversationText}
-      `;
-
-      console.log('开始生成播客总结内容...');
-
-      // 使用非流式接口生成内容，避免JSON解析问题
-      const [keyPointsText, quotesText, tipsText, summaryText] = await Promise.all([
-        aiService.generateTextNonStreaming(keyPointsPrompt),
-        aiService.generateTextNonStreaming(quotesPrompt),
-        aiService.generateTextNonStreaming(tipsPrompt),
-        aiService.generateTextNonStreaming(summaryPrompt),
-      ]);
-
-      console.log('所有AI内容生成完成');
-
-      // 解析JSON响应
-      let keyPoints: string[] = [];
-      try {
-        keyPoints = JSON.parse(keyPointsText);
-      } catch (e) {
-        // 处理非JSON格式响应
-        console.log('关键点不是有效的JSON格式，尝试分行解析...');
-        keyPoints = keyPointsText.split('\n').filter((line: string) => line.trim().length > 0);
-        console.error('关键点解析错误:', e);
-      }
-
-      let quotes: string[] = [];
-      try {
-        quotes = JSON.parse(quotesText);
-      } catch (e) {
-        console.log('精彩语录不是有效的JSON格式，尝试分行解析...');
-        quotes = quotesText.split('\n').filter((line: string) => line.trim().length > 0);
-        console.error('精彩语录解析错误:', e);
-      }
-
-      let tips: string[] = [];
-      try {
-        tips = JSON.parse(tipsText);
-      } catch (e) {
-        console.log('实用建议不是有效的JSON格式，尝试分行解析...');
-        tips = tipsText.split('\n').filter((line: string) => line.trim().length > 0);
-        console.error('实用建议解析错误:', e);
-      }
-
-      // 创建或更新播客总结记录
+      // 创建或更新摘要记录
       const { data: existingSummary } = await supabase
         .from('podcast_summary')
         .select('id')
@@ -698,34 +624,39 @@ export const PodcastService = {
         .maybeSingle();
 
       if (existingSummary) {
-        // 更新现有总结
-        await supabase
+        // 更新现有摘要
+        const { error: updateError } = await supabase
           .from('podcast_summary')
           .update({
-            key_points: keyPoints,
-            notable_quotes: quotes,
-            practical_tips: tips,
-            summary_text: summaryText,
+            key_points: summaryResult.keyPoints,
+            notable_quotes: summaryResult.quotes,
+            practical_tips: summaryResult.practicalTips,
+            follow_up_actions: summaryResult.followUpThoughts,
+            summary_text: summaryResult.summary,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingSummary.id);
+
+        if (updateError) throw updateError;
       } else {
-        // 创建新的总结
-        await supabase.from('podcast_summary').insert([
-          {
-            podcast_id: podcastId,
-            key_points: keyPoints,
-            notable_quotes: quotes,
-            practical_tips: tips,
-            summary_text: summaryText,
-          },
-        ]);
+        // 创建新摘要
+        const { error: insertError } = await supabase.from('podcast_summary').insert({
+          podcast_id: podcastId,
+          key_points: summaryResult.keyPoints,
+          notable_quotes: summaryResult.quotes,
+          practical_tips: summaryResult.practicalTips,
+          follow_up_actions: summaryResult.followUpThoughts,
+          summary_text: summaryResult.summary,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (insertError) throw insertError;
       }
 
-      console.log('播客总结已保存到数据库');
       return true;
     } catch (error) {
-      console.error('创建播客总结错误:', error);
+      console.error('创建播客摘要失败:', error);
       return false;
     }
   },

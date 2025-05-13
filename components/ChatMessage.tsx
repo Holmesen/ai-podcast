@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import MarkdownRenderer from './MarkdownRenderer';
 import { colors } from './theme';
 
 export type MessageType = 'ai' | 'user';
@@ -19,7 +20,7 @@ export function ChatMessage({ type, content }: ChatMessageProps) {
         <Ionicons name={isAI ? 'mic' : 'person'} size={20} color="white" />
       </View>
       <View style={[styles.messageContent, isAI ? styles.messageContentAI : styles.messageContentUser]}>
-        <Text style={[styles.messageText, isAI ? styles.messageTextAI : styles.messageTextUser]}>{content}</Text>
+        {isAI ? <MarkdownRenderer content={content} /> : <Text style={styles.messageTextUser}>{content}</Text>}
       </View>
     </View>
   );

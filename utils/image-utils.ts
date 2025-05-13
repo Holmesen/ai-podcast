@@ -62,5 +62,5 @@ export function getOptimizedImageSource(uri: string) {
  */
 export function generateAvatarUrl(displayName?: string, username?: string): string {
   const name = displayName || username || 'User';
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
 }
