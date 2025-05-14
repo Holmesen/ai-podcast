@@ -122,7 +122,6 @@ export default function RootLayout() {
           />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(podcast)" />
         </Stack>
       </SafeAreaProvider>
     </ErrorBoundary>
