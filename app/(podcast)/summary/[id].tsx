@@ -33,11 +33,6 @@ interface ListItemProps {
   key?: number;
 }
 
-interface TipItemType {
-  action: string;
-  steps: string[];
-}
-
 // 标签组件
 const Tag = ({ label }: TagProps) => (
   <View style={styles.tag}>
@@ -65,27 +60,6 @@ const ListItem = ({ text, key }: ListItemProps) => (
     <Text style={styles.listItemText}>{text}</Text>
   </View>
 );
-
-// 实用技巧项组件
-const TipItem = ({ content, key }: { content: string; key: number }) => {
-  try {
-    const tip: TipItemType = JSON.parse(content);
-    return (
-      <View style={styles.tipItem}>
-        <Text style={styles.tipAction}>{tip.action}</Text>
-        {tip.steps.map((step: string, index: number) => (
-          <View key={`${key}-${index}`} style={styles.tipStep}>
-            <Text style={styles.tipStepNumber}>{index + 1}</Text>
-            <Text style={styles.tipStepText}>{step}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  } catch (error) {
-    console.error('解析实用技巧失败:', error);
-    return <ListItem text={content} key={key} />;
-  }
-};
 
 export default function Summary() {
   const { id } = useLocalSearchParams();
@@ -277,7 +251,7 @@ export default function Summary() {
 
             <View style={styles.sectionContent}>
               {summary.practical_tips.map((tip, index) => (
-                <TipItem content={tip} key={index} />
+                <ListItem text={tip} key={index} />
               ))}
             </View>
           </View>
