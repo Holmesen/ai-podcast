@@ -1,5 +1,4 @@
 import { useAuth } from '@/hooks/useAuth';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -83,17 +82,11 @@ export default function Home() {
   const handleViewAll = () => {
     // Alert.alert('查看全部', '将显示全部话题');
     // 这里可以在稳定后替换为实际的路由导航
-    router.push('/screens/AIDemo');
   };
 
   // 导航到播客详情页
   const navigateToPodcastDetails = (podcastId: string) => {
     router.push(`/(podcast)/details/${podcastId}`);
-  };
-
-  // 导航到开发者示例页面
-  const navigateToExamples = () => {
-    router.push('/examples/' as any);
   };
 
   return (
@@ -113,18 +106,6 @@ export default function Home() {
           actionText="立即开始"
           href="/record"
         />
-
-        {/* 开发者示例入口 */}
-        <TouchableOpacity style={styles.devExamplesCard} onPress={navigateToExamples}>
-          <View style={styles.devExamplesContent}>
-            <Ionicons name="code-slash-outline" size={28} color="#6366f1" style={styles.devIcon} />
-            <View>
-              <Text style={styles.devExamplesTitle}>开发者示例</Text>
-              <Text style={styles.devExamplesSubtitle}>查看应用功能演示与组件示例</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-        </TouchableOpacity>
 
         <View style={styles.section}>
           <View style={styles.sectionTitleContainer}>
