@@ -1,92 +1,94 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PodcastCard } from '../../components/PodcastCard';
 import { QuickAction } from '../../components/QuickAction';
 import { SearchBar } from '../../components/SearchBar';
 import { TopicCard } from '../../components/TopicCard';
+import { Podcast, PodcastService } from '../../services/podcast-service';
+import { Topic, TopicService } from '../../services/topic-service';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
+  const [isLoadingTopics, setIsLoadingTopics] = useState(true);
+  const [isLoadingPodcasts, setIsLoadingPodcasts] = useState(true);
 
   const { user } = useAuth();
-
   const router = useRouter();
 
-  // 推荐话题数据
-  const recommendedTopics = [
-    {
-      id: '1',
-      title: '科技前沿',
-      episodeCount: '25+ 话题',
-      imageUrl:
-        'https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    },
-    {
-      id: '2',
-      title: '心理健康',
-      episodeCount: '18+ 话题',
-      imageUrl:
-        'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    },
-    {
-      id: '3',
-      title: '创意写作',
-      episodeCount: '12+ 话题',
-      imageUrl:
-        'https://images.unsplash.com/photo-1507668077129-56e32842fceb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80',
-    },
-    {
-      id: '4',
-      title: '职业发展',
-      episodeCount: '20+ 话题',
-      imageUrl:
-        'https://images.unsplash.com/photo-1434626881859-194d67b2b86f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1474&q=80',
-    },
-  ];
+  // 获取推荐话题
+  useEffect(() => {
+    const fetchTopics = async () => {
+      setIsLoadingTopics(true);
+      try {
+        // 获取推荐话题，限制为4个，只获取推荐的话题
+        const topicsData = await TopicService.getTopics(4, true);
+        setTopics(topicsData);
+      } catch (error) {
+        console.error('获取话题失败:', error);
+      } finally {
+        setIsLoadingTopics(false);
+      }
+    };
 
-  // 近期播客数据
-  const recentPodcasts = [
-    {
-      id: '1',
-      title: 'AI 与未来工作',
-      host: '你与 AI 主持人 Sarah',
-      duration: '25分钟',
-      date: '昨天',
-      imageUrl:
-        'https://images.unsplash.com/photo-1589903308904-1010c2294adc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    },
-    {
-      id: '2',
-      title: '高效学习策略',
-      host: '你与 AI 主持人 Michael',
-      duration: '18分钟',
-      date: '3天前',
-      imageUrl:
-        'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    },
-    {
-      id: '3',
-      title: '心灵成长之旅',
-      host: '你与 AI 主持人 Emma',
-      duration: '32分钟',
-      date: '上周',
-      imageUrl:
-        'https://images.unsplash.com/photo-1516534775068-ba3e7458af70?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    },
-  ];
+    fetchTopics();
+  }, []);
 
-  // 处理"查看全部"按钮点击
-  const handleViewAll = () => {
-    // Alert.alert('查看全部', '将显示全部话题');
-    // 这里可以在稳定后替换为实际的路由导航
-  };
+  // 获取最近的播客
+  useEffect(() => {
+    const fetchRecentPodcasts = async () => {
+      setIsLoadingPodcasts(true);
+      try {
+        if (user?.id) {
+          // 获取当前用户最近的播客，状态为已发布
+          const podcastsData = await PodcastService.getUserPodcasts(user.id, 3, 'published');
+          setPodcasts(podcastsData);
+        }
+      } catch (error) {
+        console.error('获取播客失败:', error);
+      } finally {
+        setIsLoadingPodcasts(false);
+      }
+    };
+
+    if (user) {
+      fetchRecentPodcasts();
+    }
+  }, [user]);
 
   // 导航到播客详情页
   const navigateToPodcastDetails = (podcastId: string) => {
-    router.push(`/(podcast)/details/${podcastId}`);
+    router.push({
+      pathname: '/(podcast)/details/[id]',
+      params: { id: podcastId },
+    });
+  };
+
+  // 导航到话题详情页
+  const navigateToTopicDetails = (topicId: string) => {
+    // 这里我们使用简单的方式导航，等待话题详情页面创建后再完善
+    router.push('/');
+    // 后续可以改为：
+    // router.push({
+    //   pathname: "/(topics)/[id]",
+    //   params: { id: topicId }
+    // });
+  };
+
+  // 查看全部话题
+  const handleViewAllTopics = () => {
+    // 目前导航回首页，等待话题列表页面创建后再完善
+    router.push('/');
+  };
+
+  // 查看全部播客
+  const handleViewAllPodcasts = () => {
+    // 目前导航回首页，等待播客列表页面创建后再完善
+    router.push('/');
   };
 
   return (
@@ -110,47 +112,77 @@ export default function Home() {
         <View style={styles.section}>
           <View style={styles.sectionTitleContainer}>
             <Text style={styles.sectionTitle}>推荐话题</Text>
-            <TouchableOpacity onPress={handleViewAll}>
+            <TouchableOpacity onPress={handleViewAllTopics}>
               <Text style={styles.sectionTitleLink}>查看全部</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScrollContent}
-          >
-            {recommendedTopics.map((topic) => (
-              <TopicCard
-                key={topic.id}
-                title={topic.title}
-                episodeCount={topic.episodeCount}
-                imageUrl={topic.imageUrl}
-                onPress={() => {}} // 话题点击处理
-              />
-            ))}
-          </ScrollView>
+          {isLoadingTopics ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#6366f1" />
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScrollContent}
+            >
+              {topics.length > 0 ? (
+                topics.map((topic) => (
+                  <TopicCard
+                    key={topic.id}
+                    title={topic.title}
+                    episodeCount={`${topic.popularity_score}+ 热度`}
+                    imageUrl={topic.background_image_url}
+                    onPress={() => navigateToTopicDetails(topic.id)}
+                  />
+                ))
+              ) : (
+                <Text style={styles.emptyText}>暂无推荐话题</Text>
+              )}
+            </ScrollView>
+          )}
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionTitleContainer}>
             <Text style={styles.sectionTitle}>近期播客</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleViewAllPodcasts}>
               <Text style={styles.sectionTitleLink}>查看全部</Text>
             </TouchableOpacity>
           </View>
 
-          {recentPodcasts.map((podcast) => (
-            <PodcastCard
-              key={podcast.id}
-              title={podcast.title}
-              host={podcast.host}
-              duration={podcast.duration}
-              date={podcast.date}
-              imageUrl={podcast.imageUrl}
-              onPress={() => navigateToPodcastDetails(podcast.id)}
-            />
-          ))}
+          {isLoadingPodcasts ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#6366f1" />
+            </View>
+          ) : (
+            <>
+              {podcasts.length > 0 ? (
+                podcasts.map((podcast) => (
+                  <PodcastCard
+                    key={podcast.id}
+                    title={podcast.title}
+                    host={podcast.hostName || ''}
+                    duration={podcast.formattedDuration || ''}
+                    date={podcast.date || ''}
+                    imageUrl={
+                      podcast.cover_image_url ||
+                      'https://images.unsplash.com/photo-1589903308904-1010c2294adc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
+                    }
+                    onPress={() => navigateToPodcastDetails(podcast.id)}
+                  />
+                ))
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>暂无近期播客</Text>
+                  <TouchableOpacity style={styles.createButton} onPress={() => router.push('/record')}>
+                    <Text style={styles.createButtonText}>创建您的第一个播客</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -231,5 +263,33 @@ const styles = StyleSheet.create({
   horizontalScrollContent: {
     paddingBottom: 8,
     gap: 16,
+  },
+  loadingContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    color: '#6b7280',
+    textAlign: 'center',
+    padding: 20,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+  },
+  createButton: {
+    marginTop: 12,
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: 'white',
+    fontWeight: '500',
   },
 });
