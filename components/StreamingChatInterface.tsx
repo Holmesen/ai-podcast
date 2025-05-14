@@ -82,6 +82,7 @@ export function StreamingChatInterface({
   const savedMessagesRef = useRef<Set<string>>(new Set());
   const [, setHistoricalMessages] = useState<PodcastMessage[]>([]);
   const [hasLoadedHistorical, setHasLoadedHistorical] = useState(false);
+  const [doneGenerate, setDoneGenerate] = useState<boolean>(true);
 
   // 使用 AI SDK 的 useChat 钩子
   const {
@@ -99,8 +100,13 @@ export function StreamingChatInterface({
     // 多步工具调用，每个消息最多5个步骤
     maxSteps: 5,
     id: podcastId, // 使用播客ID作为对话ID
+    onResponse: (response) => {
+      console.log('onResponse-response', response);
+      setDoneGenerate(false);
+    },
     // 在消息完成时保存到数据库
     onFinish: async (message) => {
+      setDoneGenerate(true);
       try {
         if (message.role === 'assistant' && message.content) {
           // 避免重复保存相同的消息
@@ -299,11 +305,16 @@ export function StreamingChatInterface({
         {/* 历史消息已由useChat管理，不需要单独显示 */}
 
         {/* 显示初始欢迎消息（如果有，且没有任何消息） */}
-        {initialMessage && messages.length === 0 && <ChatMessage type="ai" content={initialMessage} />}
+        {initialMessage && messages.length === 0 && <ChatMessage type="ai" content={initialMessage} done={true} />}
 
         {/* 显示所有消息，包括流式显示的消息 */}
-        {messages.map((message) => (
-          <ChatMessage key={message.id} type={message.role === 'assistant' ? 'ai' : 'user'} content={message.content} />
+        {messages.map((message, index) => (
+          <ChatMessage
+            key={message.id}
+            type={message.role === 'assistant' ? 'ai' : 'user'}
+            content={message.content}
+            done={index !== messages.length - 1 || doneGenerate}
+          />
         ))}
 
         {/* 显示错误消息 */}

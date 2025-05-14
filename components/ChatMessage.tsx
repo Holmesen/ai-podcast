@@ -9,9 +9,10 @@ export type MessageType = 'ai' | 'user';
 interface ChatMessageProps {
   type: MessageType;
   content: string;
+  done: boolean;
 }
 
-export function ChatMessage({ type, content }: ChatMessageProps) {
+export function ChatMessage({ type, content, done = false }: ChatMessageProps) {
   const isAI = type === 'ai';
 
   return (
@@ -20,7 +21,15 @@ export function ChatMessage({ type, content }: ChatMessageProps) {
         <Ionicons name={isAI ? 'mic' : 'person'} size={20} color="white" />
       </View>
       <View style={[styles.messageContent, isAI ? styles.messageContentAI : styles.messageContentUser]}>
-        {isAI ? <MarkdownRenderer content={content} /> : <Text style={styles.messageTextUser}>{content}</Text>}
+        {isAI ? (
+          done ? (
+            <MarkdownRenderer content={content} />
+          ) : (
+            <Text style={styles.messageTextAI}>{content}</Text>
+          )
+        ) : (
+          <Text style={styles.messageTextUser}>{content}</Text>
+        )}
       </View>
     </View>
   );

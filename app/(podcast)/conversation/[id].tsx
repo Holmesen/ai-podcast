@@ -134,7 +134,12 @@ export default function ConversationView() {
         contentContainerStyle={styles.messagesContentContainer}
       >
         {messages.map((message, index) => (
-          <ChatMessage key={index} type={message.speaker_type === 'host' ? 'ai' : 'user'} content={message.content} />
+          <ChatMessage
+            key={index}
+            type={message.speaker_type === 'host' ? 'ai' : 'user'}
+            content={message.content}
+            done={true}
+          />
         ))}
       </ScrollView>
 

@@ -30,7 +30,6 @@ interface TagProps {
 
 interface ListItemProps {
   text: string;
-  key?: number;
 }
 
 // 标签组件
@@ -54,8 +53,8 @@ const QuoteCard = ({ content, author, isAI = false }: QuoteProps) => (
 );
 
 // 列表项组件
-const ListItem = ({ text, key }: ListItemProps) => (
-  <View style={styles.listItem} key={key}>
+const ListItem = ({ text }: ListItemProps) => (
+  <View style={styles.listItem}>
     <View style={styles.bulletPoint} />
     <Text style={styles.listItemText}>{text}</Text>
   </View>
