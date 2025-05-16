@@ -3,8 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomTopicButton } from '../../components/CustomTopicButton';
 import { SearchBar } from '../../components/SearchBar';
@@ -44,41 +53,115 @@ export default function RecordTab() {
   const [deletedPodcasts, setDeletedPodcasts] = useState<OngoingTopic[]>([]);
   const [isRecycleBinLoading, setIsRecycleBinLoading] = useState(false);
 
+  // 下拉刷新状态
+  const [refreshing, setRefreshing] = useState(false);
+
   // 加载话题数据
-  useEffect(() => {
-    const fetchTopics = async () => {
-      try {
-        // 获取推荐话题
-        const topicData = await TopicService.getTopics(10, true);
+  const fetchTopics = async () => {
+    try {
+      // 获取推荐话题
+      const topicData = await TopicService.getTopics(10, true);
 
-        // 将数据转换为组件需要的格式
-        const formattedTopics = topicData.map((topic) => ({
-          id: topic.id,
-          title: topic.title,
-          description: topic.description,
-          imageUrl:
-            topic.background_image_url ||
-            'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
-        }));
+      // 将数据转换为组件需要的格式
+      const formattedTopics = topicData.map((topic) => ({
+        id: topic.id,
+        title: topic.title,
+        description: topic.description,
+        imageUrl:
+          topic.background_image_url ||
+          'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
+      }));
 
-        setTopics(formattedTopics);
-        setFilteredTopics(formattedTopics);
+      setTopics(formattedTopics);
+      setFilteredTopics(formattedTopics);
 
-        // 如果有数据，默认选中第一个话题
-        if (formattedTopics.length > 0) {
-          setSelectedTopicId(formattedTopics[0].id);
-        }
-      } catch (error) {
-        console.error('加载话题数据失败:', error);
-        // 出错时设置一些默认话题，确保UI可用
-        setTopics(getDefaultTopics());
-        setFilteredTopics(getDefaultTopics());
-        setSelectedTopicId('1');
+      // 如果有数据，默认选中第一个话题
+      if (formattedTopics.length > 0) {
+        setSelectedTopicId(formattedTopics[0].id);
       }
-    };
+    } catch (error) {
+      console.error('加载话题数据失败:', error);
+      // 出错时设置一些默认话题，确保UI可用
+      setTopics(getDefaultTopics());
+      setFilteredTopics(getDefaultTopics());
+      setSelectedTopicId('1');
+    }
+  };
 
+  // 加载进行中的话题
+  const loadOngoingTopics = async () => {
+    try {
+      // 先获取用户ID
+      const userId = await SecureStore.getItemAsync('userId');
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
+
+      // 获取用户的播客列表，筛选草稿状态的播客（进行中的播客）
+      const userPodcasts = await PodcastService.getUserPodcasts(userId, 10, 'draft');
+
+      // 如果有数据库中的播客数据
+      if (userPodcasts && userPodcasts.length > 0) {
+        const ongoingTopicsFromDB = await Promise.all(
+          userPodcasts.map(async (podcast) => {
+            // 对每个播客，获取消息数量
+            const messages = await PodcastService.getMessages(podcast.id);
+
+            // 查找话题数据
+            let topicInfo;
+            if (podcast.topic_id) {
+              topicInfo = topics.find((t) => t.id === podcast.topic_id);
+            }
+
+            // 创建OngoingTopic对象
+            return {
+              podcastId: podcast.id,
+              topicId: podcast.topic_id || '',
+              topicTitle: podcast.title,
+              topicDescription: podcast.description || '',
+              imageUrl:
+                topicInfo?.imageUrl ||
+                podcast.cover_image_url ||
+                'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
+              lastMessageTime: new Date(podcast.updated_at).toLocaleDateString(),
+              messageCount: messages.length,
+            };
+          })
+        );
+
+        // 更新进行中话题列表
+        setOngoingTopics(ongoingTopicsFromDB);
+
+        // 同时保存到AsyncStorage以便于离线访问
+        await AsyncStorage.setItem('ongoingTopics', JSON.stringify(ongoingTopicsFromDB));
+      } else {
+        // 如果数据库中没有数据，清空ongoingTopics
+        setOngoingTopics([]);
+        await AsyncStorage.removeItem('ongoingTopics');
+      }
+    } catch (error) {
+      console.error('加载进行中话题失败:', error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false); // 结束刷新状态
+    }
+  };
+
+  // 初始加载数据
+  useEffect(() => {
     fetchTopics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 加载进行中的话题
+  useEffect(() => {
+    // 只有在话题加载完成后才加载进行中的话题
+    if (topics.length > 0) {
+      loadOngoingTopics();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topics]);
 
   // 搜索过滤话题
   useEffect(() => {
@@ -96,100 +179,6 @@ export default function RecordTab() {
     setFilteredTopics(filtered);
   }, [searchQuery, topics]);
 
-  // 加载进行中的话题
-  useEffect(() => {
-    const loadOngoingTopics = async () => {
-      try {
-        // 先获取用户ID
-        const userId = await SecureStore.getItemAsync('userId');
-        if (!userId) {
-          setIsLoading(false);
-          return;
-        }
-
-        // 获取用户的播客列表，筛选草稿状态的播客（进行中的播客）
-        const userPodcasts = await PodcastService.getUserPodcasts(userId, 10, 'draft');
-
-        // 如果有数据库中的播客数据
-        if (userPodcasts && userPodcasts.length > 0) {
-          const ongoingTopicsFromDB = await Promise.all(
-            userPodcasts.map(async (podcast) => {
-              // 对每个播客，获取消息数量
-              const messages = await PodcastService.getMessages(podcast.id);
-
-              // 查找话题数据
-              let topicInfo;
-              if (podcast.topic_id) {
-                topicInfo = topics.find((t) => t.id === podcast.topic_id);
-              }
-
-              // 创建OngoingTopic对象
-              return {
-                podcastId: podcast.id,
-                topicId: podcast.topic_id || '',
-                topicTitle: podcast.title,
-                topicDescription: podcast.description || '',
-                imageUrl:
-                  topicInfo?.imageUrl ||
-                  podcast.cover_image_url ||
-                  'https://images.unsplash.com/photo-1516383607781-913a19294fd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80',
-                lastMessageTime: new Date(podcast.updated_at).toLocaleDateString(),
-                messageCount: messages.length,
-              };
-            })
-          );
-
-          // 更新进行中话题列表
-          setOngoingTopics(ongoingTopicsFromDB);
-
-          // 同时保存到AsyncStorage以便于离线访问
-          await AsyncStorage.setItem('ongoingTopics', JSON.stringify(ongoingTopicsFromDB));
-        }
-        // else {
-        //   // 如果数据库中没有数据，尝试从AsyncStorage获取
-        //   const ongoingTopicData = await AsyncStorage.getItem('ongoingTopics');
-        //   const currentTopic = await AsyncStorage.getItem('selectedTopic');
-
-        //   if (ongoingTopicData) {
-        //     const parsedOngoingTopics = JSON.parse(ongoingTopicData);
-        //     setOngoingTopics(parsedOngoingTopics);
-        //   } else if (currentTopic) {
-        //     // 如果没有进行中的话题记录，但有当前话题，添加到进行中
-        //     const parsedTopic = JSON.parse(currentTopic);
-
-        //     // 从话题列表中找到对应话题
-        //     const topicInfo = topics.find((t) => t.id === parsedTopic.topicId);
-
-        //     if (topicInfo) {
-        //       const newOngoingTopic: OngoingTopic = {
-        //         topicId: parsedTopic.topicId,
-        //         topicTitle: parsedTopic.topicTitle || topicInfo.title,
-        //         topicDescription: parsedTopic.topicDescription || topicInfo.description,
-        //         imageUrl: topicInfo.imageUrl,
-        //         lastMessageTime: new Date().toLocaleDateString(),
-        //         messageCount: 1,
-        //         podcastId: parsedTopic.podcastId,
-        //       };
-
-        //       setOngoingTopics([newOngoingTopic]);
-        //       // 保存到存储中
-        //       await AsyncStorage.setItem('ongoingTopics', JSON.stringify([newOngoingTopic]));
-        //     }
-        //   }
-        // }
-      } catch (error) {
-        console.error('加载进行中话题失败:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // 只有在话题加载完成后才加载进行中的话题
-    if (topics.length > 0) {
-      loadOngoingTopics();
-    }
-  }, [topics]);
-
   // 添加加载回收站内容的useEffect
   useEffect(() => {
     // 只有在回收站打开时才加载
@@ -197,6 +186,15 @@ export default function RecordTab() {
       loadDeletedPodcasts();
     }
   }, [showRecycleBin]);
+
+  // 下拉刷新处理函数
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // 从数据库重新获取数据
+    await fetchTopics();
+    await loadOngoingTopics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 加载已删除的播客
   const loadDeletedPodcasts = async () => {
@@ -562,7 +560,19 @@ export default function RecordTab() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#6366f1']}
+            tintColor={'#6366f1'}
+            title={'正在刷新...'}
+            titleColor={'#6b7280'}
+          />
+        }
+      >
         {/* 回收站内容 */}
         {showRecycleBin ? (
           <View style={styles.recycleBinSection}>
