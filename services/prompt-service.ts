@@ -11,7 +11,7 @@ import {
   PromptCategory,
   PromptTemplate,
 } from '../utils/prompts';
-import { AIResponse, AIService } from './ai-service';
+import { AIService } from './ai-service';
 
 // 扩展提示词结果接口
 export interface PromptResult {
@@ -85,24 +85,18 @@ export class PromptService {
    * @param promptId 提示词ID
    * @param variables 变量值映射
    */
-  public async generateFromPrompt(
-    promptId: string,
-    variables: Record<string, string>,
-    stream: boolean = true
-  ): Promise<PromptResult> {
+  public async generateFromPrompt(promptId: string, variables: Record<string, string>): Promise<PromptResult> {
     const template = this.getPromptById(promptId);
     if (!template) {
       throw new Error(`找不到ID为 ${promptId} 的提示词模板`);
     }
 
     const formattedPrompt = formatPrompt(template.template, variables);
-    const result = stream
-      ? await this.aiService.generateText(formattedPrompt)
-      : await this.aiService.generateTextNonStreaming(formattedPrompt);
+    const result = await this.aiService.generateTextNonStreaming(formattedPrompt);
 
     return {
-      text: stream ? (result as AIResponse).text : (result as string),
-      reasoning: stream ? (result as AIResponse).reasoning : undefined,
+      text: result,
+      reasoning: undefined,
     };
   }
 
@@ -114,7 +108,7 @@ export class PromptService {
     const promptId = 'podcast-summary';
     const variables = { content };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -141,7 +135,7 @@ export class PromptService {
     const promptId = 'chapter-summary';
     const variables = { content };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
     return result.text;
   }
 
@@ -153,7 +147,7 @@ export class PromptService {
     const promptId = 'generate-topics';
     const variables = { interests };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -178,7 +172,7 @@ export class PromptService {
     const promptId = 'extend-topic';
     const variables = { topic };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -207,7 +201,7 @@ export class PromptService {
     const promptId = 'clean-transcript';
     const variables = { transcript };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
     return result.text;
   }
 
@@ -223,7 +217,7 @@ export class PromptService {
     const promptId = 'content-review';
     const variables = { content };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -254,7 +248,7 @@ export class PromptService {
     const promptId = 'meta-prompt';
     const variables = { scenario, goal, style };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
     return result.text;
   }
 
@@ -273,7 +267,7 @@ export class PromptService {
       chapterCount: chapterCount.toString(),
     };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -306,7 +300,7 @@ export class PromptService {
       duration: duration.toString(),
     };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -343,7 +337,7 @@ export class PromptService {
       topicCount: topicCount.toString(),
     };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -370,7 +364,7 @@ export class PromptService {
     const promptId = 'extract-named-entities';
     const variables = { transcript };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -404,7 +398,7 @@ export class PromptService {
       quoteCount: quoteCount.toString(),
     };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
 
     try {
       // 尝试解析JSON格式的结果
@@ -429,7 +423,7 @@ export class PromptService {
     const promptId = 'enhance-transcript';
     const variables = { transcript };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
     return result.text;
   }
 
@@ -441,7 +435,7 @@ export class PromptService {
     const promptId = 'transcript-to-dialogue';
     const variables = { transcript };
 
-    const result = await this.generateFromPrompt(promptId, variables, false);
+    const result = await this.generateFromPrompt(promptId, variables);
     return result.text;
   }
 }

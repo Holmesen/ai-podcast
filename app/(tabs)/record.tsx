@@ -144,38 +144,39 @@ export default function RecordTab() {
 
           // 同时保存到AsyncStorage以便于离线访问
           await AsyncStorage.setItem('ongoingTopics', JSON.stringify(ongoingTopicsFromDB));
-        } else {
-          // 如果数据库中没有数据，尝试从AsyncStorage获取
-          const ongoingTopicData = await AsyncStorage.getItem('ongoingTopics');
-          const currentTopic = await AsyncStorage.getItem('selectedTopic');
-
-          if (ongoingTopicData) {
-            const parsedOngoingTopics = JSON.parse(ongoingTopicData);
-            setOngoingTopics(parsedOngoingTopics);
-          } else if (currentTopic) {
-            // 如果没有进行中的话题记录，但有当前话题，添加到进行中
-            const parsedTopic = JSON.parse(currentTopic);
-
-            // 从话题列表中找到对应话题
-            const topicInfo = topics.find((t) => t.id === parsedTopic.topicId);
-
-            if (topicInfo) {
-              const newOngoingTopic: OngoingTopic = {
-                topicId: parsedTopic.topicId,
-                topicTitle: parsedTopic.topicTitle || topicInfo.title,
-                topicDescription: parsedTopic.topicDescription || topicInfo.description,
-                imageUrl: topicInfo.imageUrl,
-                lastMessageTime: new Date().toLocaleDateString(),
-                messageCount: 1,
-                podcastId: parsedTopic.podcastId,
-              };
-
-              setOngoingTopics([newOngoingTopic]);
-              // 保存到存储中
-              await AsyncStorage.setItem('ongoingTopics', JSON.stringify([newOngoingTopic]));
-            }
-          }
         }
+        // else {
+        //   // 如果数据库中没有数据，尝试从AsyncStorage获取
+        //   const ongoingTopicData = await AsyncStorage.getItem('ongoingTopics');
+        //   const currentTopic = await AsyncStorage.getItem('selectedTopic');
+
+        //   if (ongoingTopicData) {
+        //     const parsedOngoingTopics = JSON.parse(ongoingTopicData);
+        //     setOngoingTopics(parsedOngoingTopics);
+        //   } else if (currentTopic) {
+        //     // 如果没有进行中的话题记录，但有当前话题，添加到进行中
+        //     const parsedTopic = JSON.parse(currentTopic);
+
+        //     // 从话题列表中找到对应话题
+        //     const topicInfo = topics.find((t) => t.id === parsedTopic.topicId);
+
+        //     if (topicInfo) {
+        //       const newOngoingTopic: OngoingTopic = {
+        //         topicId: parsedTopic.topicId,
+        //         topicTitle: parsedTopic.topicTitle || topicInfo.title,
+        //         topicDescription: parsedTopic.topicDescription || topicInfo.description,
+        //         imageUrl: topicInfo.imageUrl,
+        //         lastMessageTime: new Date().toLocaleDateString(),
+        //         messageCount: 1,
+        //         podcastId: parsedTopic.podcastId,
+        //       };
+
+        //       setOngoingTopics([newOngoingTopic]);
+        //       // 保存到存储中
+        //       await AsyncStorage.setItem('ongoingTopics', JSON.stringify([newOngoingTopic]));
+        //     }
+        //   }
+        // }
       } catch (error) {
         console.error('加载进行中话题失败:', error);
       } finally {
@@ -341,9 +342,9 @@ export default function RecordTab() {
       setOngoingTopics(updatedOngoingTopics);
       await AsyncStorage.setItem('ongoingTopics', JSON.stringify(updatedOngoingTopics));
 
-      // 导航到对话页面
+      // 导航到选择主持人页面，而不是直接进入聊天
       router.push({
-        pathname: '/screens/chat',
+        pathname: '/screens/select-host' as any,
       });
     } catch (error) {
       console.error('保存话题失败:', error);
@@ -422,9 +423,28 @@ export default function RecordTab() {
 
       await AsyncStorage.setItem('selectedTopic', JSON.stringify(topicInfo));
 
-      // 导航到对话页面
+      // 检查该播客的详细信息，判断是否已经设置了hostRoleId
+      if (topic.podcastId) {
+        try {
+          const savedTopicData = await AsyncStorage.getItem(`topicInfo_${topic.podcastId}`);
+          if (savedTopicData) {
+            const savedTopic = JSON.parse(savedTopicData);
+            if (savedTopic.hostRoleId) {
+              // 如果已经有hostRoleId，直接进入topic-chat
+              router.push({
+                pathname: '/screens/topic-chat' as any,
+              });
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('检查保存的话题信息失败:', error);
+        }
+      }
+
+      // 如果没有找到hostRoleId，导航到对话页面
       router.push({
-        pathname: '/screens/chat',
+        pathname: '/screens/select-host' as any,
       });
     } catch (error) {
       console.error('设置当前话题失败:', error);

@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 
 // 创建自定义 DeepSeek 提供商实例，显式传入 API 密钥
 const deepseekProvider = createDeepSeek({
-  apiKey: process.env.DEEPSEEK_API_KEY || process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY || '',
+  apiKey: process.env.DEEPSEEK_API_KEY || '',
 });
 
 export async function POST(req: Request) {

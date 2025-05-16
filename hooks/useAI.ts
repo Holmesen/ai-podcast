@@ -4,7 +4,7 @@ import { AIResponse, AIService } from '../services/ai-service';
 interface UseAIResult {
   isLoading: boolean;
   error: Error | null;
-  generateText: (prompt: string) => Promise<AIResponse>;
+  generateTextWithStream: (prompt: string) => Promise<AIResponse>;
   generateTextWithReasoning: (prompt: string) => Promise<AIResponse>;
   generatePodcastSummary: (content: string) => Promise<string>;
   generatePodcastTopics: (context: string) => Promise<string[]>;
@@ -22,11 +22,11 @@ export function useAI(): UseAIResult {
     throw error;
   };
 
-  const generateText = async (prompt: string) => {
+  const generateTextWithStream = async (prompt: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await aiService.generateText(prompt);
+      const result = await aiService.generateTextWithStream(prompt);
       return result;
     } catch (error) {
       return handleError(error);
@@ -90,7 +90,7 @@ export function useAI(): UseAIResult {
   return {
     isLoading,
     error,
-    generateText,
+    generateTextWithStream: generateTextWithStream,
     generateTextWithReasoning,
     generatePodcastSummary,
     generatePodcastTopics,

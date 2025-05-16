@@ -1,23 +1,27 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { generateText, streamText } from 'ai';
 
-// 创建自定义 DeepSeek 提供商实例，显式传入 API 密钥
+// 创建DeepSeek提供商实例
 const deepseekProvider = createDeepSeek({
-  apiKey: process.env.DEEPSEEK_API_KEY || process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY || '',
+  apiKey: process.env.DEEPSEEK_API_KEY || '',
 });
 
 export async function POST(req: Request) {
   try {
-    // 从请求中提取消息和stream参数
-    const { messages, stream = true } = await req.json();
+    // 从请求中提取消息和隐藏提示参数
+    const { messages = [], body = {}, stream = true } = await req.json();
+    const { hidePrompt = false } = body;
 
     // 记录请求信息，帮助调试
-    console.log('Chat API received request with', messages.length, 'messages');
-    console.log('Last message:', messages[messages.length - 1]?.content?.slice(0, 100));
     console.log('Stream mode:', stream ? 'enabled' : 'disabled');
+    console.log('Chat API received request with', messages.length, 'messages');
+    if (messages.length > 0) {
+      console.log('Last message:', messages[messages.length - 1]?.content?.slice(0, 100));
+    }
+    console.log('Hide prompt:', hidePrompt);
 
     // 检查消息格式
-    if (!messages || !Array.isArray(messages)) {
+    if (!Array.isArray(messages)) {
       console.error('Invalid message format:', messages);
       return new Response(JSON.stringify({ error: '无效的消息格式' }), {
         status: 400,
@@ -28,12 +32,27 @@ export async function POST(req: Request) {
     // 确保使用正确的模型
     const model = deepseekProvider('deepseek-chat');
 
+    // 如果需要隐藏提示消息，则处理消息数组
+    let finalMessages = messages;
+    if (hidePrompt && messages.length >= 2) {
+      // 找到最后一条用户消息
+      const lastUserMessageIndex = messages.findIndex((msg, idx) => msg.role === 'user' && idx === messages.length - 1);
+
+      if (lastUserMessageIndex !== -1) {
+        // 从消息数组中移除最后一条用户消息
+        finalMessages = [...messages.slice(0, lastUserMessageIndex), ...messages.slice(lastUserMessageIndex + 1)];
+
+        // 记录操作
+        console.log('隐藏了最后一条用户提示消息');
+      }
+    }
+
     // 根据stream参数决定使用流式响应还是非流式响应
     if (stream) {
-      // 流式响应
+      // 使用流式响应
       const result = streamText({
         model,
-        messages,
+        messages: finalMessages,
       });
 
       // 确保结果是一个流
@@ -45,6 +64,7 @@ export async function POST(req: Request) {
         });
       }
 
+      // 转换为AI SDK期望的响应格式
       return result.toDataStreamResponse({
         headers: {
           'Content-Type': 'application/octet-stream',
@@ -56,28 +76,16 @@ export async function POST(req: Request) {
         },
       });
     } else {
-      // 非流式响应
-      console.log('Using non-streaming response mode');
-
+      // 使用非流式响应
       const result = generateText({
         model,
-        messages,
+        messages: finalMessages,
       });
-
-      // 等待完整文本生成完毕
       const { text } = await result;
-
-      // 返回完整的JSON响应
-      return new Response(
-        JSON.stringify({
-          text: text,
-          role: 'assistant',
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ text, role: 'assistant' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
   } catch (error) {
     console.error('Chat API error:', error);
