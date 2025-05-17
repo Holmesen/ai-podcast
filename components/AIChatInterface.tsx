@@ -3,7 +3,16 @@ import { Message, useChat } from '@ai-sdk/react';
 import { Ionicons } from '@expo/vector-icons';
 import { fetch as expoFetch } from 'expo/fetch';
 import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { generateAPIUrl, getPromptById } from '../utils';
 import { ChatMessage } from './ChatMessage';
 import { ThinkingIndicator } from './ThinkingIndicator';
@@ -117,6 +126,8 @@ export function AIChatInterface({
   const [, setHistoricalMessages] = useState<PodcastMessage[]>([]);
   const savedMessagesRef = useRef<Set<string>>(new Set());
   const [welcomeMessageGenerated, setWelcomeMessageGenerated] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completionSuccess, setCompletionSuccess] = useState(false);
 
   // 创建系统提示词
   const systemPrompt = createSystemPrompt(hostRoleId, topic);
@@ -308,9 +319,18 @@ export function AIChatInterface({
     if (!onConversationComplete) return;
 
     try {
+      setIsCompleting(true); // 开始结束对话，显示加载状态
       await onConversationComplete();
+      setCompletionSuccess(true); // 设置成功状态
+
+      // 3秒后重置状态，UI反馈足够用户感知
+      setTimeout(() => {
+        setCompletionSuccess(false);
+      }, 3000);
     } catch (error) {
       console.error('结束对话失败:', error);
+    } finally {
+      setIsCompleting(false); // 无论成功失败，都结束加载状态
     }
   };
 
@@ -380,11 +400,28 @@ export function AIChatInterface({
 
       {/* 完成对话按钮 */}
       <TouchableOpacity
-        style={styles.completeButton}
+        style={[
+          styles.completeButton,
+          isLoading && styles.disabledCompleteButton,
+          isCompleting && styles.loadingCompleteButton,
+          completionSuccess && styles.successCompleteButton,
+        ]}
         onPress={completeConversation}
-        disabled={isLoading || displayMessages.length === 0}
+        disabled={isLoading || displayMessages.length === 0 || isCompleting}
       >
-        <Text style={styles.completeButtonText}>{isLoading ? '生成中...' : '结束对话'}</Text>
+        {isCompleting ? (
+          <View style={styles.buttonContentRow}>
+            <ActivityIndicator size="small" color="white" />
+            <Text style={styles.completeButtonText}>正在结束对话...</Text>
+          </View>
+        ) : completionSuccess ? (
+          <View style={styles.buttonContentRow}>
+            <Ionicons name="checkmark-circle" size={20} color="white" />
+            <Text style={styles.completeButtonText}>对话已成功结束</Text>
+          </View>
+        ) : (
+          <Text style={styles.completeButtonText}>{isLoading ? '生成中...' : '结束对话'}</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -459,8 +496,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
     alignItems: 'center',
   },
+  disabledCompleteButton: {
+    backgroundColor: colors.neutral300,
+  },
+  loadingCompleteButton: {
+    backgroundColor: '#9c64a6', // 深紫色，表示加载中
+  },
+  successCompleteButton: {
+    backgroundColor: '#4CAF50', // 绿色，表示成功
+  },
   completeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  buttonContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
