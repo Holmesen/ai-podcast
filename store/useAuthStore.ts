@@ -1,4 +1,5 @@
-import * as SecureStore from 'expo-secure-store';
+// import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '@/utils/storage';
 import { create } from 'zustand';
 import { AuthService, LoginUserParams, RegisterUserParams, User } from '../services/supabase';
 

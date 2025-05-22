@@ -1,18 +1,20 @@
+import * as storageStore from '@/utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import * as ExpoCrypto from 'expo-crypto';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import 'react-native-url-polyfill/auto';
 
 // SecureStore adapter for Supabase
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
-    return SecureStore.getItemAsync(key);
+    return storageStore.getItemAsync(key);
   },
   setItem: (key: string, value: string) => {
-    SecureStore.setItemAsync(key, value);
+    storageStore.setItemAsync(key, value);
   },
   removeItem: (key: string) => {
-    SecureStore.deleteItemAsync(key);
+    storageStore.deleteItemAsync(key);
   },
 };
 
@@ -141,7 +143,13 @@ export const AuthService = {
    */
   async getCurrentUser(): Promise<User | null> {
     try {
-      const userId = await SecureStore.getItemAsync('userId');
+      // const userId = await storageStore.getItemAsync('userId');
+      let userId = null;
+      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+        userId = await storageStore.getItemAsync('userId');
+      } else {
+        userId = await AsyncStorage.getItem('userId');
+      }
       if (!userId) return null;
 
       const { data, error } = await supabase.from('podcast_user').select('*').eq('id', userId).single();
@@ -158,7 +166,7 @@ export const AuthService = {
    * 用户登出
    */
   async logout(): Promise<void> {
-    await SecureStore.deleteItemAsync('userId');
+    await storageStore.deleteItemAsync('userId');
   },
 };
 
